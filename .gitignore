@@ -1,9 +1,10 @@
 # Dependencies
 /vendor/
-/node_modules/
+node_modules/
 
 # Lock files (not needed for libraries)
 composer.lock
+package-lock.json
 
 # Build artifacts
 *.zip~
