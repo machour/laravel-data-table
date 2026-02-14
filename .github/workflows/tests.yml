@@ -49,9 +49,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: react
-        run: |
-          npm install --ignore-scripts
-          npx -y install-peerdeps --dev --only-peers .
+        run: npm install --ignore-scripts
 
       - name: Type-check
         working-directory: react
