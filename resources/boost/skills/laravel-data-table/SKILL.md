@@ -22,21 +22,22 @@ This skill covers the `machour/laravel-data-table` Composer package.
 
 **Backend** — one PHP class per model (extends `Machour\DataTable\AbstractDataTable`). Defines DTO properties, columns, filters, sorts, quick views, and optionally exports.
 
-**Frontend** — the `laravel-data-table` npm package provides `<DataTable>` and `<Filters>` React components. The package ships its own shadcn-style UI primitives — no `@/components/ui` dependency required.
+**Frontend** — installed via `npx shadcn@latest add ./vendor/machour/laravel-data-table/react/public/r/data-table.json`. This copies the `<DataTable>` and `<Filters>` React components **into your project** — you own the code. Required shadcn UI components (button, table, checkbox, etc.) are installed automatically as `registryDependencies`.
 
 ```
 Your app
 ├── app/DataTables/ProductDataTable.php       ← your DataTable class
 ├── routes/web.php                            ← Inertia route passing makeTable()
-└── resources/js/pages/products/index.tsx     ← React page using <DataTable>
+├── resources/js/pages/products/index.tsx     ← React page using <DataTable>
+└── resources/js/components/data-table/       ← copied by shadcn add (you own this)
 
-Library provides
+Library provides (Composer)
 ├── Machour\DataTable\AbstractDataTable       ← base class
 ├── Machour\DataTable\Columns\Column          ← column DTO
 ├── Machour\DataTable\QuickView               ← quick view DTO
 ├── Machour\DataTable\Filters\OperatorFilter  ← Spatie filter
 ├── Machour\DataTable\Concerns\HasExport      ← export trait
-└── npm: laravel-data-table                   ← React components + types
+└── react/public/r/data-table.json            ← shadcn registry block
 ```
 
 ## Scaffolding with Artisan

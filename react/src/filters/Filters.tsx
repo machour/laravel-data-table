@@ -1,5 +1,5 @@
-import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Command,
     CommandEmpty,
@@ -7,14 +7,14 @@ import {
     CommandInput,
     CommandItem,
     CommandList,
-} from "../ui/command";
+} from "@/components/ui/command";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-} from "../ui/popover";
-import { Separator } from "../ui/separator";
-import { cn } from "../lib/utils";
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { ArrowRightIcon, ChevronRightIcon, FilterIcon, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FilterControl } from "./FilterControls";

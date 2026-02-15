@@ -1,0 +1,83 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "laravel-data-table",
+  "homepage": "https://github.com/machour/laravel-data-table",
+  "items": [
+    {
+      "name": "data-table",
+      "type": "registry:block",
+      "title": "Laravel DataTable",
+      "description": "A full-featured server-side DataTable for Laravel + Inertia.js + React with sorting, filtering, pagination, quick views, column ordering, exports, and more.",
+      "dependencies": [
+        "@tanstack/react-table",
+        "@inertiajs/react",
+        "date-fns",
+        "lucide-react"
+      ],
+      "registryDependencies": [
+        "button",
+        "calendar",
+        "checkbox",
+        "command",
+        "dialog",
+        "dropdown-menu",
+        "input",
+        "label",
+        "popover",
+        "select",
+        "separator",
+        "table"
+      ],
+      "files": [
+        {
+          "path": "src/data-table/data-table.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/data-table/data-table-column-header.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/data-table/data-table-pagination.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/data-table/data-table-quick-views.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/data-table/data-table-row-actions.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/data-table/types.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "src/data-table/use-data-table.ts",
+          "type": "registry:hook"
+        },
+        {
+          "path": "src/filters/Filters.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/filters/FilterControls.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/filters/types.ts",
+          "type": "registry:lib"
+        },
+        {
+          "path": "src/filters/useFilters.ts",
+          "type": "registry:hook"
+        },
+        {
+          "path": "src/ui/dropdown-menu-reverted-sub-trigger.tsx",
+          "type": "registry:component"
+        }
+      ]
+    }
+  ]
+}

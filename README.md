@@ -34,30 +34,11 @@ A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (T
 - `maatwebsite/excel ^3.1` — for XLSX/CSV export
 - `spatie/laravel-typescript-transformer ^2.5` — for TypeScript type generation from DTOs
 
-### JavaScript (peer dependencies)
+### JavaScript
 
-| Package | Version |
-|---------|--------|
-| react / react-dom | ^18.0 \| ^19.0 |
-| @inertiajs/react | ^2.0 |
-| @tanstack/react-table | ^8.0 |
-| @radix-ui/react-checkbox | ^1.0 |
-| @radix-ui/react-dialog | ^1.0 |
-| @radix-ui/react-dropdown-menu | ^2.0 |
-| @radix-ui/react-label | ^2.0 |
-| @radix-ui/react-popover | ^1.0 |
-| @radix-ui/react-select | ^2.0 |
-| @radix-ui/react-separator | ^1.0 |
-| @radix-ui/react-slot | ^1.0 |
-| class-variance-authority | ^0.7 |
-| clsx | ^2.0 |
-| tailwind-merge | ^3.0 |
-| lucide-react | >=0.400 |
-| date-fns | ^4.0 |
-| react-day-picker | ^9.0 |
-| cmdk | ^1.0 |
+Your project must be set up with [shadcn/ui](https://ui.shadcn.com) (React + Tailwind CSS).
 
-> **Note:** The library ships its own shadcn-style UI primitives (button, checkbox, dialog, dropdown-menu, etc.) — you do **not** need to install shadcn/ui components separately.
+The `shadcn add` command will automatically install all required shadcn components (button, table, checkbox, etc.) and npm dependencies (`@tanstack/react-table`, `@inertiajs/react`, `date-fns`, `lucide-react`).
 
 ## Installation
 
@@ -67,23 +48,13 @@ A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (T
 composer require machour/laravel-data-table
 ```
 
-### 2. Install the React components
-
-Add the npm dependency pointing to the vendor path:
-
-```json
-{
-    "dependencies": {
-        "laravel-data-table": "file:vendor/machour/laravel-data-table/react"
-    }
-}
-```
-
-Then run:
+### 2. Install the React components via shadcn
 
 ```bash
-npm install
+npx shadcn@latest add ./vendor/machour/laravel-data-table/react/public/r/data-table.json
 ```
+
+This copies all DataTable components into your project (you own the code!) and installs the required shadcn UI dependencies automatically.
 
 ### 3. (Optional) Install Maatwebsite Excel for export support
 

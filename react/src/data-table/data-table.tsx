@@ -8,8 +8,8 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "../ui/table";
-import { Button } from "../ui/button";
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -19,12 +19,12 @@ import {
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuTrigger,
-    DropdownMenuRevertedSubTrigger,
-} from "../ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
+import { DropdownMenuRevertedSubTrigger } from "../ui/dropdown-menu-reverted-sub-trigger";
 import { Filters } from "../filters/Filters";
 import type { FilterColumn } from "../filters/types";
-import { Checkbox } from "../ui/checkbox";
-import { cn } from "../lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 import { type Column, type ColumnDef, type ColumnOrderState, type Table as TanStackTable, type VisibilityState, flexRender } from "@tanstack/react-table";
 import {
     Calendar,
@@ -46,7 +46,7 @@ import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-} from "../ui/popover";
+} from "@/components/ui/popover";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTablePagination } from "./data-table-pagination";

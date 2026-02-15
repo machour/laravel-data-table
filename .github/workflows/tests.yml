@@ -35,9 +35,9 @@ jobs:
       - name: Run tests
         run: vendor/bin/pest
 
-  react-typecheck:
+  react-registry-build:
     runs-on: ubuntu-latest
-    name: React type-check
+    name: React registry build
 
     steps:
       - uses: actions/checkout@v4
@@ -49,8 +49,8 @@ jobs:
 
       - name: Install dependencies
         working-directory: react
-        run: npm install --ignore-scripts
+        run: npm install
 
-      - name: Type-check
+      - name: Build registry
         working-directory: react
-        run: npx tsc --noEmit --skipLibCheck
+        run: npm run registry:build
