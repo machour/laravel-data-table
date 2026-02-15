@@ -18,10 +18,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuSub,
     DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DropdownMenuRevertedSubTrigger } from "../ui/dropdown-menu-reverted-sub-trigger";
-import { Filters } from "../filters/Filters";
+import { Filters } from "../filters/filters";
 import type { FilterColumn } from "../filters/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -302,9 +302,11 @@ function ColumnsDropdown<TData>({ table, tableColumns, columnOrder, onReorder, s
                 {ungrouped.map((column) => renderItem(column))}
                 {[...groups.entries()].map(([group, cols]) => (
                     <DropdownMenuSub key={group}>
-                        <DropdownMenuRevertedSubTrigger>
+                        <DropdownMenuSubTrigger
+                            className={"flex-row-reverse gap-2 justify-end [&_svg]:ml-0 [&_svg]:rotate-180"}
+                        >
                             {group}
-                        </DropdownMenuRevertedSubTrigger>
+                        </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent>
                             {cols.map((column) => renderItem(column))}
                         </DropdownMenuSubContent>

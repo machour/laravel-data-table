@@ -1,83 +1,95 @@
 {
-  "$schema": "https://ui.shadcn.com/schema/registry.json",
-  "name": "laravel-data-table",
-  "homepage": "https://github.com/machour/laravel-data-table",
-  "items": [
-    {
-      "name": "data-table",
-      "type": "registry:block",
-      "title": "Laravel DataTable",
-      "description": "A full-featured server-side DataTable for Laravel + Inertia.js + React with sorting, filtering, pagination, quick views, column ordering, exports, and more.",
-      "dependencies": [
-        "@tanstack/react-table",
-        "@inertiajs/react",
-        "date-fns",
-        "lucide-react"
-      ],
-      "registryDependencies": [
-        "button",
-        "calendar",
-        "checkbox",
-        "command",
-        "dialog",
-        "dropdown-menu",
-        "input",
-        "label",
-        "popover",
-        "select",
-        "separator",
-        "table"
-      ],
-      "files": [
+    "$schema": "https://ui.shadcn.com/schema/registry.json",
+    "name": "laravel-data-table",
+    "homepage": "https://github.com/machour/laravel-data-table",
+    "items": [
         {
-          "path": "src/data-table/data-table.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "src/data-table/data-table-column-header.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "src/data-table/data-table-pagination.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "src/data-table/data-table-quick-views.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "src/data-table/data-table-row-actions.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "src/data-table/types.ts",
-          "type": "registry:lib"
-        },
-        {
-          "path": "src/data-table/use-data-table.ts",
-          "type": "registry:hook"
-        },
-        {
-          "path": "src/filters/Filters.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "src/filters/FilterControls.tsx",
-          "type": "registry:component"
-        },
-        {
-          "path": "src/filters/types.ts",
-          "type": "registry:lib"
-        },
-        {
-          "path": "src/filters/useFilters.ts",
-          "type": "registry:hook"
-        },
-        {
-          "path": "src/ui/dropdown-menu-reverted-sub-trigger.tsx",
-          "type": "registry:component"
+            "name": "data-table",
+            "type": "registry:block",
+            "title": "Laravel DataTable",
+            "description": "A full-featured server-side DataTable for Laravel + Inertia.js + React with sorting, filtering, pagination, quick views, column ordering, exports, and more.",
+            "dependencies": [
+                "@tanstack/react-table",
+                "@inertiajs/react",
+                "date-fns",
+                "lucide-react"
+            ],
+            "registryDependencies": [
+                "button",
+                "calendar",
+                "checkbox",
+                "command",
+                "dialog",
+                "dropdown-menu",
+                "input",
+                "label",
+                "popover",
+                "select",
+                "separator",
+                "table"
+            ],
+            "files": [
+                {
+                    "path": "src/data-table/data-table.tsx",
+                    "type": "registry:block",
+                    "target": "resources/js/components/data-table/data-table.tsx"
+                },
+                {
+                    "path": "src/data-table/data-table-column-header.tsx",
+                    "type": "registry:component",
+                    "target": "resources/js/components/data-table/data-table-column-header.tsx"
+                },
+                {
+                    "path": "src/data-table/data-table-pagination.tsx",
+                    "type": "registry:component",
+                    "target": "resources/js/components/data-table/data-table-pagination.tsx"
+                },
+                {
+                    "path": "src/data-table/data-table-quick-views.tsx",
+                    "type": "registry:component",
+                    "target": "resources/js/components/data-table/data-table-quick-views.tsx"
+                },
+                {
+                    "path": "src/data-table/data-table-row-actions.tsx",
+                    "type": "registry:component",
+                    "target": "resources/js/components/data-table/data-table-row-actions.tsx"
+                },
+                {
+                    "path": "src/data-table/types.ts",
+                    "type": "registry:lib",
+                    "target": "resources/js/components/data-table/types.ts"
+                },
+                {
+                    "path": "src/data-table/use-data-table.ts",
+                    "type": "registry:hook",
+                    "target": "resources/js/components/data-table/use-data-table.ts"
+                },
+                {
+                    "path": "src/filters/filters.tsx",
+                    "type": "registry:component",
+                    "target": "resources/js/components/filters/filters.tsx"
+                },
+                {
+                    "path": "src/filters/filter-controls.tsx",
+                    "type": "registry:component",
+                    "target": "resources/js/components/filters/filter-controls.tsx"
+                },
+                {
+                    "path": "src/filters/types.ts",
+                    "type": "registry:lib",
+                    "target": "resources/js/components/filters/types.ts"
+
+                },
+                {
+                    "path": "src/filters/use-filters.ts",
+                    "type": "registry:hook",
+                    "target": "resources/js/components/filters/use-filter.ts"
+                },
+                {
+                    "path": "src/ui/dropdown-menu-reverted-sub-trigger.tsx",
+                    "type": "registry:component"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }

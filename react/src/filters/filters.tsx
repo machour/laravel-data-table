@@ -17,10 +17,10 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon, ChevronRightIcon, FilterIcon, Trash2, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FilterControl } from "./FilterControls";
+import { FilterControl } from "./filter-controls";
 import type { FilterColumn, FilterValue } from "./types";
 import { DEFAULT_OPERATOR, OPERATORS } from "./types";
-import { useFilters } from "./useFilters";
+import { useFilters } from "./use-filters";
 
 interface FiltersProps {
     columns: FilterColumn[];
