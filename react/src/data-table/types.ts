@@ -34,6 +34,7 @@ export interface DataTableMeta {
     total: number;
     sorts: DataTableSort[];
     filters: Record<string, unknown>;
+    filterParam?: string;
 }
 
 export interface DataTableOptions {
@@ -75,6 +76,7 @@ export interface DataTableProps<TData extends object> {
     className?: string;
     tableData: DataTableResponse<TData>;
     tableName: string;
+    filterParam?: string;
     actions?: DataTableAction<TData>[];
     bulkActions?: DataTableBulkAction<TData>[];
     renderCell?: (columnId: string, value: unknown, row: TData) => React.ReactNode | undefined;

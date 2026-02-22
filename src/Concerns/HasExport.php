@@ -36,7 +36,7 @@ trait HasExport
 
         if ($filename instanceof \Closure) {
             $request = $request ?? request();
-            $filters = $request->get('filter', []);
+            $filters = $request->get(static::filterParamName(), []);
 
             return $filename($filters);
         }
@@ -81,7 +81,14 @@ trait HasExport
     {
         $request = $request ?? request();
 
-        return QueryBuilder::for(static::tableBaseQuery(), $request)
+        $filterParam = static::filterParamName();
+        $queryRequest = $request;
+        if ($filterParam !== 'filter') {
+            $queryRequest = clone $request;
+            $queryRequest->query->set('filter', $request->get($filterParam, []));
+        }
+
+        return QueryBuilder::for(static::tableBaseQuery(), $queryRequest)
             ->allowedFilters(static::tableAllowedFilters())
             ->allowedSorts(static::tableAllowedSorts())
             ->defaultSort(static::tableDefaultSort());

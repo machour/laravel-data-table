@@ -24,7 +24,7 @@ function navigate(params: Record<string, unknown>) {
     });
 }
 
-export function useFilters(serverFilters: Record<string, unknown>) {
+export function useFilters(serverFilters: Record<string, unknown>, filterParam = "filter") {
     const activeFilters = useMemo<ActiveFilters>(() => {
         const result: ActiveFilters = {};
         for (const [key, raw] of Object.entries(serverFilters)) {
@@ -38,29 +38,30 @@ export function useFilters(serverFilters: Record<string, unknown>) {
     const setFilter = useCallback(
         (columnId: string, operator: string, values: string[]) => {
             if (values.length === 0) {
-                navigate({ [`filter[${columnId}]`]: null, page: null });
+                navigate({ [`${filterParam}[${columnId}]`]: null, page: null });
                 return;
             }
             navigate({
-                [`filter[${columnId}]`]: `${operator}:${values.join(",")}`,
+                [`${filterParam}[${columnId}]`]: `${operator}:${values.join(",")}`,
                 page: null,
             });
         },
-        [],
+        [filterParam],
     );
 
     const clearFilter = useCallback((columnId: string) => {
-        navigate({ [`filter[${columnId}]`]: null, page: null });
-    }, []);
+        navigate({ [`${filterParam}[${columnId}]`]: null, page: null });
+    }, [filterParam]);
 
     const clearAllFilters = useCallback(() => {
         const params: Record<string, unknown> = { page: null };
+        const prefix = `${filterParam}[`;
         const url = new URL(window.location.href);
         for (const k of url.searchParams.keys()) {
-            if (k.startsWith("filter[")) params[k] = null;
+            if (k.startsWith(prefix)) params[k] = null;
         }
         navigate(params);
-    }, []);
+    }, [filterParam]);
 
     return { activeFilters, setFilter, clearFilter, clearAllFilters };
 }

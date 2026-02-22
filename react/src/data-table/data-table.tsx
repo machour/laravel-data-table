@@ -93,7 +93,7 @@ function getPinnedCellBg(isPinned: string | false, _isEvenRow: boolean, isSelect
     return base;
 }
 
-function DataTableToolbar<TData>({ tableData, table, tableName, columnVisibility, columnOrder, applyColumns, onReorderColumns, handleApplyQuickView, handleApplyCustomSearch, resolvedOptions }: {
+function DataTableToolbar<TData>({ tableData, table, tableName, columnVisibility, columnOrder, applyColumns, onReorderColumns, handleApplyQuickView, handleApplyCustomSearch, resolvedOptions, filterParam }: {
     tableData: { quickViews: import("./types").DataTableQuickView[]; exportUrl?: string | null; columns: DataTableColumnDef[] };
     table: TanStackTable<TData>;
     tableName: string;
@@ -104,6 +104,7 @@ function DataTableToolbar<TData>({ tableData, table, tableName, columnVisibility
     handleApplyQuickView: (params: Record<string, unknown>) => void;
     handleApplyCustomSearch: (search: string) => void;
     resolvedOptions: DataTableOptions;
+    filterParam: string;
 }) {
     return (
         <div className="flex gap-3 px-4">
@@ -119,6 +120,7 @@ function DataTableToolbar<TData>({ tableData, table, tableName, columnVisibility
                     onApplyColumns={applyColumns}
                     onApplyColumnOrder={onReorderColumns}
                     enableCustom={resolvedOptions.customQuickViews}
+                    filterParam={filterParam}
                 />
             )}
             {resolvedOptions.exports && tableData.exportUrl && (
@@ -346,6 +348,7 @@ export function DataTable<TData extends object>({
     className,
     tableData,
     tableName,
+    filterParam: filterParamProp,
     actions,
     bulkActions,
     renderCell,
@@ -355,6 +358,7 @@ export function DataTable<TData extends object>({
     groupClassName,
     options: optionsOverride,
 }: DataTableProps<TData>) {
+    const filterParam = filterParamProp ?? tableData.meta.filterParam ?? "filter";
     const resolvedOptions = useMemo<DataTableOptions>(() => ({
         quickViews: true,
         customQuickViews: true,
@@ -499,6 +503,7 @@ export function DataTable<TData extends object>({
                         <Filters
                             columns={filterColumns}
                             serverFilters={meta.filters as Record<string, unknown>}
+                            filterParam={filterParam}
                         />
                     )}
                 </div>
@@ -520,6 +525,7 @@ export function DataTable<TData extends object>({
                             handleApplyQuickView={handleApplyQuickView}
                             handleApplyCustomSearch={handleApplyCustomSearch}
                             resolvedOptions={resolvedOptions}
+                            filterParam={filterParam}
                         />
                     </PopoverContent>
                 </Popover>
@@ -535,6 +541,7 @@ export function DataTable<TData extends object>({
                         handleApplyQuickView={handleApplyQuickView}
                         handleApplyCustomSearch={handleApplyCustomSearch}
                         resolvedOptions={resolvedOptions}
+                        filterParam={filterParam}
                     />
                 </div>
             </div>

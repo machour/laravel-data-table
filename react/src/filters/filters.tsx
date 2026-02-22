@@ -14,6 +14,7 @@ import { useFilters } from "./use-filters";
 interface FiltersProps {
     columns: FilterColumn[];
     serverFilters: Record<string, unknown>;
+    filterParam?: string;
 }
 
 function formatNumericValue(v: string): string {
@@ -167,8 +168,8 @@ function FilterPill({
     );
 }
 
-export function Filters({ columns, serverFilters }: FiltersProps) {
-    const { activeFilters, setFilter, clearFilter, clearAllFilters } = useFilters(serverFilters);
+export function Filters({ columns, serverFilters, filterParam = "filter" }: FiltersProps) {
+    const { activeFilters, setFilter, clearFilter, clearAllFilters } = useFilters(serverFilters, filterParam);
 
     const [selectorOpen, setSelectorOpen] = useState(false);
     const [selectorColumn, setSelectorColumn] = useState<string | null>(null);

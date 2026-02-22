@@ -77,6 +77,7 @@ interface DataTableQuickViewsProps {
     onApplyColumns: (columnIds: string[]) => void;
     onApplyColumnOrder: (order: ColumnOrderState) => void;
     enableCustom?: boolean;
+    filterParam?: string;
 }
 
 export function DataTableQuickViews({
@@ -90,6 +91,7 @@ export function DataTableQuickViews({
     onApplyColumns,
     onApplyColumnOrder,
     enableCustom = true,
+    filterParam = "filter",
 }: DataTableQuickViewsProps) {
     const [savedViews, setSavedViews] = useState<SavedQuickView[]>(() =>
         loadSavedViews(tableName),
@@ -109,7 +111,7 @@ export function DataTableQuickViews({
         ? new URL(window.location.href).search
         : "";
 
-    const hasFilters = decodeURIComponent(currentSearch).includes("filter[");
+    const hasFilters = decodeURIComponent(currentSearch).includes(`${filterParam}[`);
 
     const getVisibleColumnIds = useCallback((): string[] => {
         return allColumns
@@ -305,7 +307,7 @@ export function DataTableQuickViews({
                             const sortParam = params.get("sort");
 
                             for (const [key, val] of params.entries()) {
-                                const match = key.match(/^filter\[(.+)]$/);
+                                const match = key.match(new RegExp(`^${filterParam.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\[(.+)]$`));
                                 if (match) {
                                     filters.push(`${match[1]} = ${val}`);
                                 }

@@ -366,6 +366,19 @@ Route::get('/products', function () {
 });
 ```
 
+## Multiple Tables on One Page
+
+Override `filterParamName()` so filter URL params don't collide:
+
+```php
+class InvoiceDataTable extends AbstractDataTable
+{
+    public static function filterParamName(): string { return 'invoice_filter'; }
+}
+```
+
+Frontend picks it up automatically, or set it via prop: `<DataTable filterParam="invoice_filter" />`.
+
 ## URL Format
 
 ```

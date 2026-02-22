@@ -203,6 +203,7 @@ Extend this class for each model. It extends `Spatie\LaravelData\Data`, so it's 
 | `tableAllowedFilters()` | No | Auto-derived from `filterable: true` columns. Override for `OperatorFilter` or custom filters |
 | `tableAllowedSorts()` | No | Auto-derived from `sortable: true` columns. Override for relation sorts |
 | `tableFooter(Collection)` | No | Compute per-page footer aggregations |
+| `filterParamName()` | No | URL query parameter name for filters. Default: `'filter'`. Override to avoid collisions with multiple tables on one page |
 | `makeTable(?Request)` | Inherited | Builds the `DataTableResponse` — call this in your route |
 
 ### `Column`
@@ -311,6 +312,7 @@ Requires `maatwebsite/excel` to be installed.
 interface DataTableProps<TData extends object> {
     tableData: DataTableResponse<TData>;  // Server response from makeTable()
     tableName: string;                     // Unique name for localStorage keys
+    filterParam?: string;                  // URL param name for filters (default: from server or 'filter')
     actions?: DataTableAction<TData>[];    // Row actions dropdown
     bulkActions?: DataTableBulkAction<TData>[]; // Bulk actions with checkbox selection
     renderCell?: (columnId: string, value: unknown, row: TData) => ReactNode | undefined;
@@ -424,6 +426,27 @@ Frontend (custom rendering):
         Specs: "bg-violet-50/60 dark:bg-violet-950/5",
     }}
 />
+```
+
+## Multiple Tables on One Page
+
+Override `filterParamName()` on each DataTable class so their URL parameters don't collide:
+
+```php
+class InvoiceDataTable extends AbstractDataTable
+{
+    public static function filterParamName(): string
+    {
+        return 'invoice_filter';
+    }
+}
+```
+
+The frontend picks up the param name automatically from the server response. You can also set it explicitly via the `filterParam` prop:
+
+```tsx
+<DataTable tableData={productsData} tableName="products" />
+<DataTable tableData={invoicesData} tableName="invoices" filterParam="invoice_filter" />
 ```
 
 ## URL Format

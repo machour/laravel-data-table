@@ -36,6 +36,11 @@ abstract class AbstractDataTable extends Data
         return '-id';
     }
 
+    public static function filterParamName(): string
+    {
+        return 'filter';
+    }
+
     /**
      * Compute footer aggregations for the current page of data.
      *
@@ -74,8 +79,15 @@ abstract class AbstractDataTable extends Data
     public static function makeTable(?Request $request = null): DataTableResponse
     {
         $request = $request ?? request();
+        $filterParam = static::filterParamName();
 
-        $query = QueryBuilder::for(static::tableBaseQuery())
+        $queryRequest = $request;
+        if ($filterParam !== 'filter') {
+            $queryRequest = clone $request;
+            $queryRequest->query->set('filter', $request->get($filterParam, []));
+        }
+
+        $query = QueryBuilder::for(static::tableBaseQuery(), $queryRequest)
             ->allowedFilters(static::tableAllowedFilters())
             ->allowedSorts(static::tableAllowedSorts())
             ->defaultSort(static::tableDefaultSort());
@@ -102,8 +114,8 @@ abstract class AbstractDataTable extends Data
             }
         }
 
-        $quickViews = collect(static::tableQuickViews())->map(function (QuickView $qv) use ($request) {
-            $active = static::quickViewMatchesRequest($qv, $request);
+        $quickViews = collect(static::tableQuickViews())->map(function (QuickView $qv) use ($request, $filterParam) {
+            $active = static::quickViewMatchesRequest($qv, $request, $filterParam);
 
             return new QuickView(
                 id: $qv->id,
@@ -133,36 +145,36 @@ abstract class AbstractDataTable extends Data
                 perPage: $paginator->perPage(),
                 total: $paginator->total(),
                 sorts: $sorts,
-                filters: $request->get('filter', []),
+                filters: $request->get($filterParam, []),
+                filterParam: $filterParam,
             ),
             exportUrl: $exportUrl,
             footer: ! empty($footer) ? $footer : null,
         );
     }
 
-    protected static function quickViewMatchesRequest(QuickView $qv, Request $request): bool
+    protected static function quickViewMatchesRequest(QuickView $qv, Request $request, string $filterParam = 'filter'): bool
     {
         if (empty($qv->params)) {
-            return ! $request->has('filter') && ! $request->has('sort');
+            return ! $request->has($filterParam) && ! $request->has('sort');
         }
 
         $qvFilterKeys = [];
+        $filterPattern = '/^' . preg_quote($filterParam, '/') . '\[(.+)]$/';
 
         foreach ($qv->params as $key => $value) {
-            // Convert bracket notation to dot notation: filter[enabled] → filter.enabled
             $inputKey = preg_replace('/\[([^\]]+)\]/', '.$1', $key);
 
             if ((string) $request->input($inputKey) !== (string) $value) {
                 return false;
             }
 
-            if (preg_match('/^filter\[(.+)]$/', $key, $m)) {
+            if (preg_match($filterPattern, $key, $m)) {
                 $qvFilterKeys[] = $m[1];
             }
         }
 
-        // Ensure the request doesn't have extra filters beyond what the QuickView defines
-        $requestFilterKeys = array_keys($request->get('filter', []));
+        $requestFilterKeys = array_keys($request->get($filterParam, []));
 
         return count($requestFilterKeys) === count($qvFilterKeys);
     }
