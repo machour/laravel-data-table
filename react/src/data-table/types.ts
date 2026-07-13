@@ -24,7 +24,7 @@ export interface DataTableQuickView {
 
 export interface DataTableSort {
     id: string;
-    direction: 'asc' | 'desc';
+  direction: "asc" | "desc";
 }
 
 export interface DataTableMeta {
@@ -53,6 +53,20 @@ export interface DataTableResponse<TData = object> {
     meta: DataTableMeta;
     exportUrl?: string | null;
     footer?: Record<string, unknown> | null;
+  expansion?: DataTableExpansion | null;
+}
+
+export interface DataTableExpansion {
+  mode: "eager" | "lazy";
+  key: string;
+  cache: boolean;
+  url?: string | null;
+  data?: Record<string, unknown> | null;
+}
+
+export interface ExpandedRowRenderProps<TData> {
+  row: TData;
+  data: unknown;
 }
 
 export interface DataTableAction<TData> {
@@ -79,9 +93,18 @@ export interface DataTableProps<TData extends object> {
     filterParam?: string;
     actions?: DataTableAction<TData>[];
     bulkActions?: DataTableBulkAction<TData>[];
-    renderCell?: (columnId: string, value: unknown, row: TData) => React.ReactNode | undefined;
+  renderCell?: (
+    columnId: string,
+    value: unknown,
+    row: TData,
+  ) => React.ReactNode | undefined;
     renderHeader?: Record<string, React.ReactNode>;
-    renderFooterCell?: (columnId: string, value: unknown) => React.ReactNode | undefined;
+  renderFooterCell?: (
+    columnId: string,
+    value: unknown,
+  ) => React.ReactNode | undefined;
+  renderExpandedRow?: (props: ExpandedRowRenderProps<TData>) => React.ReactNode;
+  getRowProps?: (row: TData) => React.HTMLAttributes<HTMLTableRowElement>;
     rowClassName?: (row: TData) => string;
     groupClassName?: Record<string, string>;
     options?: Partial<DataTableOptions>;

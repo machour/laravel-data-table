@@ -3,6 +3,7 @@ import {
     type ColumnDef,
     type ColumnFiltersState,
     type ColumnOrderState,
+  type ExpandedState,
     type RowSelectionState,
     type SortingState,
     type VisibilityState,
@@ -14,8 +15,32 @@ import type { DataTableColumnDef, DataTableResponse } from "./types";
 
 const STORAGE_PREFIX = "dt-columns-";
 const ORDER_STORAGE_PREFIX = "dt-column-order-";
+const EXPANDED_STORAGE_PREFIX = "dt-expanded-";
 
-function loadVisibility(tableName: string, columns: DataTableColumnDef[]): VisibilityState {
+function loadExpanded(tableName: string): ExpandedState {
+  const stored = sessionStorage.getItem(EXPANDED_STORAGE_PREFIX + tableName);
+  if (stored) {
+    try {
+      return JSON.parse(stored) as ExpandedState;
+    } catch {
+      // fall through
+    }
+  }
+
+  return {};
+}
+
+function saveExpanded(tableName: string, expanded: ExpandedState) {
+  sessionStorage.setItem(
+    EXPANDED_STORAGE_PREFIX + tableName,
+    JSON.stringify(expanded),
+  );
+}
+
+function loadVisibility(
+  tableName: string,
+  columns: DataTableColumnDef[],
+): VisibilityState {
     const stored = localStorage.getItem(STORAGE_PREFIX + tableName);
     if (stored) {
         try {
@@ -35,7 +60,10 @@ function saveVisibility(tableName: string, visibility: VisibilityState) {
     localStorage.setItem(STORAGE_PREFIX + tableName, JSON.stringify(visibility));
 }
 
-function loadColumnOrder(tableName: string, columns: DataTableColumnDef[]): ColumnOrderState {
+function loadColumnOrder(
+  tableName: string,
+  columns: DataTableColumnDef[],
+): ColumnOrderState {
     const stored = localStorage.getItem(ORDER_STORAGE_PREFIX + tableName);
     if (stored) {
         try {
@@ -55,17 +83,28 @@ interface UseDataTableOptions<TData> {
     tableData: DataTableResponse<TData>;
     tableName: string;
     columnDefs: ColumnDef<TData>[];
+  expansionKey?: string;
+  expansionEnabled?: boolean;
 }
 
-export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDataTableOptions<TData>) {
+export function useDataTable<TData>({
+  tableData,
+  tableName,
+  columnDefs,
+  expansionKey,
+  expansionEnabled = false,
+}: UseDataTableOptions<TData>) {
     const { meta } = tableData;
 
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() =>
-        loadVisibility(tableName, tableData.columns),
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    () => loadVisibility(tableName, tableData.columns),
     );
 
     const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(() =>
+    withSystemColumns(
         loadColumnOrder(tableName, tableData.columns),
+      columnDefs,
+    ),
     );
 
     const [sorting, setSorting] = useState<SortingState>(() =>
@@ -74,9 +113,23 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
 
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [expanded, setExpanded] = useState<ExpandedState>(() =>
+    loadExpanded(tableName),
+  );
 
-    const navigate = useCallback(
-        (params: Record<string, unknown>) => {
+  const handleExpandedChange = useCallback(
+    (updater: ExpandedState | ((current: ExpandedState) => ExpandedState)) => {
+      setExpanded((current) => {
+        const next = typeof updater === "function" ? updater(current) : updater;
+        saveExpanded(tableName, next);
+
+        return next;
+      });
+    },
+    [tableName],
+  );
+
+  const navigate = useCallback((params: Record<string, unknown>) => {
             const currentUrl = new URL(window.location.href);
             const searchParams = new URLSearchParams(currentUrl.search);
 
@@ -93,9 +146,7 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
                 {},
                 { preserveScroll: true },
             );
-        },
-        [],
-    );
+  }, []);
 
     const handleSort = useCallback(
         (columnId: string, multi: boolean) => {
@@ -177,9 +228,9 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
                 newVisibility[col.id] = columnIds.includes(col.id);
             }
             setColumnVisibility(newVisibility);
-            setColumnOrder(columnIds);
+      setColumnOrder(withSystemColumns(columnIds, columnDefs));
         },
-        [tableData.columns],
+    [columnDefs, tableData.columns],
     );
 
     // eslint-disable-next-line react-hooks/incompatible-library
@@ -195,11 +246,20 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
         onColumnVisibilityChange: setColumnVisibility,
         onColumnOrderChange: setColumnOrder,
         onRowSelectionChange: setRowSelection,
+    onExpandedChange: handleExpandedChange,
         enableRowSelection: true,
+    getRowCanExpand: () => expansionEnabled,
+    getRowId: expansionKey
+      ? (row) =>
+          String((row as unknown as Record<string, unknown>)[expansionKey])
+      : undefined,
+    manualExpanding: true,
         getCoreRowModel: getCoreRowModel(),
         initialState: {
             columnPinning: {
-                left: columnDefs.some((c) => c.id === "_select") ? ["_select"] : [],
+        left: ["_expand", "_select"].filter((id) =>
+          columnDefs.some((column) => column.id === id),
+        ),
                 right: columnDefs.some((c) => c.id === "_actions") ? ["_actions"] : [],
             },
         },
@@ -209,6 +269,7 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
             columnVisibility,
             columnOrder,
             rowSelection,
+      expanded,
             pagination: {
                 pageIndex: meta.currentPage - 1,
                 pageSize: meta.perPage,
@@ -224,17 +285,10 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
         saveColumnOrder(tableName, columnOrder);
     }, [tableName, columnOrder]);
 
-    const handleApplyCustomSearch = useCallback(
-        (search: string) => {
+  const handleApplyCustomSearch = useCallback((search: string) => {
             const currentUrl = new URL(window.location.href);
-            router.get(
-                currentUrl.pathname + search,
-                {},
-                { preserveScroll: true },
-            );
-        },
-        [],
-    );
+    router.get(currentUrl.pathname + search, {}, { preserveScroll: true });
+  }, []);
 
     return {
         table,
@@ -243,6 +297,7 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
         columnOrder,
         setColumnOrder,
         rowSelection,
+    expanded,
         setRowSelection,
         applyColumns,
         handleSort,
@@ -251,4 +306,20 @@ export function useDataTable<TData>({ tableData, tableName, columnDefs }: UseDat
         handleApplyQuickView,
         handleApplyCustomSearch,
     };
+}
+
+function withSystemColumns<TData>(
+  order: ColumnOrderState,
+  columnDefs: ColumnDef<TData>[],
+): ColumnOrderState {
+  const available = new Set(
+    columnDefs
+      .map((column) => String(column.id ?? ""))
+      .filter((id) => id.startsWith("_")),
+  );
+  const dataColumns = order.filter((id) => !id.startsWith("_"));
+  const leading = ["_expand", "_select"].filter((id) => available.has(id));
+  const trailing = ["_actions"].filter((id) => available.has(id));
+
+  return [...leading, ...dataColumns, ...trailing];
 }
