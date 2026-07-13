@@ -97,6 +97,42 @@ abstract class AbstractDataTable extends Data
 
         $data = static::collect($paginator->items());
 
+        $expansion = null;
+        if (method_exists(static::class, 'tableExpansionEnabled') && static::tableExpansionEnabled()) {
+            $mode = static::tableExpansionMode();
+            if (! in_array($mode, ['eager', 'lazy'], true)) {
+                throw new \InvalidArgumentException('tableExpansionMode() must return "eager" or "lazy".');
+            }
+
+            $key = static::tableExpansionKey();
+            if (preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $key) !== 1) {
+                throw new \InvalidArgumentException('tableExpansionKey() must be a valid attribute or column name.');
+            }
+
+            $expandedData = null;
+            $url = null;
+            if ($mode === 'eager') {
+                $expandedData = [];
+                foreach ($paginator->items() as $model) {
+                    $rowKey = data_get($model, $key);
+                    if (! is_scalar($rowKey) || (string) $rowKey === '') {
+                        throw new \UnexpectedValueException("Expansion key [{$key}] must be a non-empty scalar value.");
+                    }
+                    $expandedData[(string) $rowKey] = static::tableExpandedData($model);
+                }
+            } else {
+                $url = static::resolveExpansionUrl();
+            }
+
+            $expansion = new DataTableExpansion(
+                mode: $mode,
+                key: $key,
+                cache: static::tableExpansionCache(),
+                url: $url,
+                data: $expandedData,
+            );
+        }
+
         $sorts = [];
         $sortParam = $request->get('sort', '');
         if ($sortParam) {
@@ -150,6 +186,7 @@ abstract class AbstractDataTable extends Data
             ),
             exportUrl: $exportUrl,
             footer: ! empty($footer) ? $footer : null,
+            expansion: $expansion,
         );
     }
 

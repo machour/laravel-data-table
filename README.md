@@ -15,6 +15,7 @@ A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (T
 - **Footer aggregations** — Per-page computed values (sum, avg, etc.) with custom rendering
 - **XLSX/CSV export** — Via Maatwebsite Excel (optional peer dependency)
 - **Bulk actions** — Checkbox selection with configurable action buttons
+- **Expandable detail panels** — Eager or lazy server payloads rendered beneath each row
 - **Row actions** — Per-row dropdown menu with visibility and variant support
 - **Responsive** — Mobile popover for toolbar, horizontal scroll for wide tables
 - **Feature flags** — Disable any feature via frontend `options` prop
@@ -24,13 +25,14 @@ A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (T
 ### PHP
 
 | Package | Version |
-|---------|---------|
+| ---------------------------- | -------------- |
 | PHP | ^8.2 |
 | Laravel | ^11.0 \| ^12.0 |
 | spatie/laravel-data | ^4.0 |
 | spatie/laravel-query-builder | ^6.0 |
 
 **Optional:**
+
 - `maatwebsite/excel ^3.1` — for XLSX/CSV export
 - `spatie/laravel-typescript-transformer ^2.5` — for TypeScript type generation from DTOs
 
@@ -73,6 +75,7 @@ php artisan make:data-table Product
 ```
 
 This generates:
+
 - `app/DataTables/ProductDataTable.php` — your DataTable class
 - `resources/js/pages/product-table.tsx` — a React page stub
 
@@ -177,10 +180,7 @@ export default function ProductsPage({ tableData }: Props) {
     return (
         <>
             <Head title="Products" />
-            <DataTable<Row>
-                tableData={tableData}
-                tableName="products"
-            />
+      <DataTable<Row> tableData={tableData} tableName="products" />
         </>
     );
 }
@@ -195,7 +195,7 @@ That's it! You get sorting, filtering, pagination, column visibility, and column
 Extend this class for each model. It extends `Spatie\LaravelData\Data`, so it's both a DTO and table configuration.
 
 | Method | Required | Description |
-|--------|----------|-------------|
+| ------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `tableColumns()` | **Yes** | Returns `Column[]` defining the table structure |
 | `tableBaseQuery()` | **Yes** | Returns the base Eloquent `Builder` |
 | `tableDefaultSort()` | No | Default sort column (prefix with `-` for desc). Default: `'-id'` |
@@ -266,7 +266,7 @@ public static function tableAllowedFilters(): array
 ```
 
 | Type | Default Operator | Available Operators |
-|------|-----------------|---------------------|
+| --------- | ---------------- | ------------------------------------------------ |
 | `text` | `contains` | `contains`, `eq` |
 | `number` | `eq` | `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `between` |
 | `date` | `eq` | `eq`, `before`, `after`, `between` |
@@ -274,6 +274,77 @@ public static function tableAllowedFilters(): array
 | `boolean` | `eq` | `eq` |
 
 All types also support `null` and `not_null`.
+
+### Expandable row detail panels
+
+Expansion is opt-in. Add `HasExpansion` to a table, then return JSON-serializable detail data from `tableExpandedData()`:
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Machour\DataTable\Concerns\HasExpansion;
+
+class ProductDataTable extends AbstractDataTable
+{
+    use HasExpansion;
+
+    public static function tableExpansionName(): string { return 'products'; }
+    public static function tableExpansionMode(): string { return 'lazy'; } // lazy | eager
+    public static function tableExpansionKey(): string { return 'id'; }
+    public static function tableExpansionCache(): bool { return true; }
+
+    public static function tableExpandedData(Model $model): mixed
+    {
+        return [
+            'description' => $model->description,
+            'stock_movements' => $model->stockMovements()->latest()->limit(10)->get(),
+        ];
+    }
+}
+```
+
+Lazy expansion uses a consumer-owned route, so authentication and authorization middleware remain under application control:
+
+```php
+use Machour\DataTable\Http\Controllers\DataTableExpansionController;
+
+DataTableExpansionController::register('products', ProductDataTable::class);
+
+Route::get('/data-table/{table}/expansion/{row}', DataTableExpansionController::class)
+    ->middleware('auth')
+    ->name('data-table.expansion');
+```
+
+The controller resolves rows through `tableBaseQuery()`. Apply tenant and authorization scopes there when they must also protect expansion requests.
+
+Render the payload in React:
+
+```tsx
+<DataTable<Product>
+  tableData={tableData}
+  tableName="products"
+  renderExpandedRow={({ row, data }) => {
+    const details = data as { description: string };
+    return <ProductDetails product={row} details={details} />;
+  }}
+/>
+```
+
+`eager` mode computes expansion data for the current page during `makeTable()`. `lazy` mode fetches it on first expansion. With `tableExpansionCache()` enabled, loaded data is reused after collapse; disabled caching refetches after every collapse. Open rows remain expanded across Inertia refreshes in the current browser tab and their lazy payload is refreshed when table data changes. The whole row toggles expansion unless the click targets an interactive control. Multiple rows may be expanded simultaneously. Tables without `HasExpansion`, and components without `renderExpandedRow`, behave exactly as before.
+
+Use `getRowProps` when rows need drag-and-drop or other native row handlers:
+
+```tsx
+<DataTable<Product>
+  tableData={tableData}
+  tableName="products"
+  renderExpandedRow={({ data }) => <ProductDetails details={data} />}
+  getRowProps={(row) => ({
+    draggable: true,
+    onDragStart: (event) =>
+      event.dataTransfer.setData("text/plain", String(row.id)),
+  })}
+/>
+```
 
 ### Export (HasExport trait)
 
@@ -315,9 +386,16 @@ interface DataTableProps<TData extends object> {
     filterParam?: string;                  // URL param name for filters (default: from server or 'filter')
     actions?: DataTableAction<TData>[];    // Row actions dropdown
     bulkActions?: DataTableBulkAction<TData>[]; // Bulk actions with checkbox selection
-    renderCell?: (columnId: string, value: unknown, row: TData) => ReactNode | undefined;
+  renderCell?: (
+    columnId: string,
+    value: unknown,
+    row: TData,
+  ) => ReactNode | undefined;
     renderHeader?: Record<string, ReactNode>;
-    renderFooterCell?: (columnId: string, value: unknown) => ReactNode | undefined;
+  renderFooterCell?: (
+    columnId: string,
+    value: unknown,
+  ) => ReactNode | undefined;
     rowClassName?: (row: TData) => string;
     groupClassName?: Record<string, string>;
     options?: Partial<DataTableOptions>;   // Feature flags (all default to true)
@@ -350,7 +428,8 @@ All default to `true`. Pass `options` prop to disable:
     tableData={tableData}
     tableName="products"
     renderCell={(columnId, value, row) => {
-        if (columnId === "price") return <span className="font-bold">{value} DT</span>;
+    if (columnId === "price")
+      return <span className="font-bold">{value} DT</span>;
         return undefined; // Fall back to default
     }}
 />
@@ -386,7 +465,8 @@ const bulkActions: DataTableBulkAction<Row>[] = [
         icon: Trash2,
         variant: "destructive",
         disabled: (rows) => rows.length === 0,
-        onClick: (rows) => router.post("/products/bulk-delete", { ids: rows.map(r => r.id) }),
+    onClick: (rows) =>
+      router.post("/products/bulk-delete", { ids: rows.map((r) => r.id) }),
     },
 ];
 ```
@@ -394,6 +474,7 @@ const bulkActions: DataTableBulkAction<Row>[] = [
 ### Footer Aggregations
 
 Backend:
+
 ```php
 public static function tableFooter(\Illuminate\Support\Collection $items): array
 {
@@ -404,12 +485,14 @@ public static function tableFooter(\Illuminate\Support\Collection $items): array
 ```
 
 Frontend (custom rendering):
+
 ```tsx
 <DataTable<Row>
     tableData={tableData}
     tableName="products"
     renderFooterCell={(columnId, value) => {
-        if (columnId === "price") return <span className="text-emerald-600">{value} DT</span>;
+    if (columnId === "price")
+      return <span className="text-emerald-600">{value} DT</span>;
         return undefined;
     }}
 />
@@ -466,7 +549,7 @@ All state is URL-driven and bookmarkable:
 The component persists user preferences under these keys:
 
 | Key | Purpose |
-|-----|---------|
+| ----------------------------- | ------------------------ |
 | `dt-columns-{tableName}` | Column visibility state |
 | `dt-column-order-{tableName}` | Column display order |
 | `dt-quickviews-{tableName}` | Custom saved quick views |

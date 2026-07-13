@@ -16,5 +16,6 @@ class DataTableResponse extends Data
         public DataTableMeta $meta,
         public ?string $exportUrl = null,
         public ?array $footer = null,
+        public ?DataTableExpansion $expansion = null,
     ) {}
 }

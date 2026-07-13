@@ -25,10 +25,19 @@ import { Filters } from "../filters/filters";
 import type { FilterColumn } from "../filters/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { type Column, type ColumnDef, type ColumnOrderState, type Table as TanStackTable, type VisibilityState, flexRender } from "@tanstack/react-table";
+import {
+  type Column,
+  type ColumnDef,
+  type ColumnOrderState,
+  type Table as TanStackTable,
+  type VisibilityState,
+  flexRender,
+} from "@tanstack/react-table";
 import {
     Calendar,
     Check,
+  ChevronDown,
+  ChevronRight,
     CircleDot,
     Download,
     EllipsisVertical,
@@ -37,6 +46,8 @@ import {
     GripVertical,
     Hash,
     List,
+  LoaderCircle,
+  RefreshCw,
     SlidersHorizontal,
     ToggleLeft,
     Type,
@@ -47,15 +58,30 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { DataTableQuickViews } from "./data-table-quick-views";
-import type { DataTableColumnDef, DataTableOptions, DataTableProps } from "./types";
+import type {
+  DataTableColumnDef,
+  DataTableOptions,
+  DataTableProps,
+} from "./types";
 import { useDataTable } from "./use-data-table";
 
-function buildExportUrl(baseUrl: string, format: string, visibleColumns?: string[]): string {
+function buildExportUrl(
+  baseUrl: string,
+  format: string,
+  visibleColumns?: string[],
+): string {
     const currentParams = new URL(window.location.href).searchParams;
     const exportUrl = new URL(baseUrl, window.location.origin);
     for (const [key, value] of currentParams.entries()) {
@@ -79,22 +105,51 @@ function getColumnPinningProps<T>(column: Column<T, unknown>) {
             zIndex: 1,
         } as React.CSSProperties,
         className: cn(
-            isPinned === "left" && column.getIsLastColumn("left") && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
-            isPinned === "right" && column.getIsFirstColumn("right") && "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.08)]",
+      isPinned === "left" &&
+        column.getIsLastColumn("left") &&
+        "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
+      isPinned === "right" &&
+        column.getIsFirstColumn("right") &&
+        "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.08)]",
         ),
     };
 }
 
 /** Opaque background for pinned cells in data rows — matches zebra stripe visually */
-function getPinnedCellBg(isPinned: string | false, _isEvenRow: boolean, isSelected: boolean): React.CSSProperties {
+function getPinnedCellBg(
+  isPinned: string | false,
+  _isEvenRow: boolean,
+  isSelected: boolean,
+): React.CSSProperties {
     if (!isPinned) return {};
     const base: React.CSSProperties = {};
-    if (isSelected) return { ...base, backgroundImage: "linear-gradient(oklch(from var(--color-primary) l c h / 0.05), oklch(from var(--color-primary) l c h / 0.05))" };
+  if (isSelected)
+    return {
+      ...base,
+      backgroundImage:
+        "linear-gradient(oklch(from var(--color-primary) l c h / 0.05), oklch(from var(--color-primary) l c h / 0.05))",
+    };
     return base;
 }
 
-function DataTableToolbar<TData>({ tableData, table, tableName, columnVisibility, columnOrder, applyColumns, onReorderColumns, handleApplyQuickView, handleApplyCustomSearch, resolvedOptions, filterParam }: {
-    tableData: { quickViews: import("./types").DataTableQuickView[]; exportUrl?: string | null; columns: DataTableColumnDef[] };
+function DataTableToolbar<TData>({
+  tableData,
+  table,
+  tableName,
+  columnVisibility,
+  columnOrder,
+  applyColumns,
+  onReorderColumns,
+  handleApplyQuickView,
+  handleApplyCustomSearch,
+  resolvedOptions,
+  filterParam,
+}: {
+  tableData: {
+    quickViews: import("./types").DataTableQuickView[];
+    exportUrl?: string | null;
+    columns: DataTableColumnDef[];
+  };
     table: TanStackTable<TData>;
     tableName: string;
     columnVisibility: VisibilityState;
@@ -135,25 +190,31 @@ function DataTableToolbar<TData>({ tableData, table, tableName, columnVisibility
                         <DropdownMenuLabel>Format d'export</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <a href={buildExportUrl(
+              <a
+                href={buildExportUrl(
                                 tableData.exportUrl,
                                 "xlsx",
-                                table.getVisibleLeafColumns()
+                  table
+                    .getVisibleLeafColumns()
                                     .filter((c) => c.getCanHide())
                                     .map((c) => c.id),
-                            )}>
+                )}
+              >
                                 <FileSpreadsheet className="mr-2 h-4 w-4" />
                                 Excel (.xlsx)
                             </a>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <a href={buildExportUrl(
+              <a
+                href={buildExportUrl(
                                 tableData.exportUrl,
                                 "csv",
-                                table.getVisibleLeafColumns()
+                  table
+                    .getVisibleLeafColumns()
                                     .filter((c) => c.getCanHide())
                                     .map((c) => c.id),
-                            )}>
+                )}
+              >
                                 <FileText className="mr-2 h-4 w-4" />
                                 CSV (.csv)
                             </a>
@@ -175,7 +236,14 @@ function DataTableToolbar<TData>({ tableData, table, tableName, columnVisibility
     );
 }
 
-function ColumnsDropdown<TData>({ table, tableColumns, columnOrder, onReorder, showVisibility, showOrdering }: {
+function ColumnsDropdown<TData>({
+  table,
+  tableColumns,
+  columnOrder,
+  onReorder,
+  showVisibility,
+  showOrdering,
+}: {
     table: TanStackTable<TData>;
     tableColumns: DataTableColumnDef[];
     columnOrder: ColumnOrderState;
@@ -237,7 +305,9 @@ function ColumnsDropdown<TData>({ table, tableColumns, columnOrder, onReorder, s
         }
     }
 
-    function renderItem(column: ReturnType<TanStackTable<TData>["getAllLeafColumns"]>[number]) {
+  function renderItem(
+    column: ReturnType<TanStackTable<TData>["getAllLeafColumns"]>[number],
+  ) {
         const isOver = dragOverId === column.id && dragging !== column.id;
         return (
             <div
@@ -265,24 +335,39 @@ function ColumnsDropdown<TData>({ table, tableColumns, columnOrder, onReorder, s
                             checked={column.getIsVisible()}
                             onCheckedChange={(value) => column.toggleVisibility(!!value)}
                         />
-                        <span className="select-none">{column.columnDef.header as string}</span>
+            <span className="select-none">
+              {column.columnDef.header as string}
+            </span>
                     </label>
                 ) : (
-                    <span className="flex-1 select-none">{column.columnDef.header as string}</span>
+          <span className="flex-1 select-none">
+            {column.columnDef.header as string}
+          </span>
                 )}
             </div>
         );
     }
 
     return (
-        <DropdownMenu onOpenChange={(open) => { if (!open) { setReordering(false); setDragging(null); setDragOverId(null); } }}>
+    <DropdownMenu
+      onOpenChange={(open) => {
+        if (!open) {
+          setReordering(false);
+          setDragging(null);
+          setDragOverId(null);
+        }
+      }}
+    >
             <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8">
                     <SlidersHorizontal className="h-4 w-4" />
                     Colonnes
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-h-[400px] w-60 overflow-y-auto">
+      <DropdownMenuContent
+        align="end"
+        className="max-h-[400px] w-60 overflow-y-auto"
+      >
                 <div className="flex items-center justify-between px-2 py-1.5">
                     <span className="text-sm font-semibold">Colonnes</span>
                     {showOrdering && (
@@ -305,7 +390,9 @@ function ColumnsDropdown<TData>({ table, tableColumns, columnOrder, onReorder, s
                 {[...groups.entries()].map(([group, cols]) => (
                     <DropdownMenuSub key={group}>
                         <DropdownMenuSubTrigger
-                            className={"flex-row-reverse gap-2 justify-end [&_svg]:ml-0 [&_svg]:rotate-180"}
+              className={
+                "flex-row-reverse gap-2 justify-end [&_svg]:ml-0 [&_svg]:rotate-180"
+              }
                         >
                             {group}
                         </DropdownMenuSubTrigger>
@@ -332,16 +419,30 @@ function buildFilterColumns(columns: DataTableColumnDef[]): FilterColumn[] {
     return columns
         .filter((col) => col.filterable)
         .map((col) => {
-            const type = col.type === "multiOption" ? "option" as const : col.type as FilterColumn["type"];
+      const type =
+        col.type === "multiOption"
+          ? ("option" as const)
+          : (col.type as FilterColumn["type"]);
             return {
                 id: col.id,
                 label: col.label,
                 type,
                 icon: TYPE_ICON_MAP[col.type],
                 ...(col.options ? { options: col.options } : {}),
-                ...(col.searchThreshold != null ? { searchThreshold: col.searchThreshold } : {}),
+        ...(col.searchThreshold != null
+          ? { searchThreshold: col.searchThreshold }
+          : {}),
             };
         });
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest(
+      "a, button, input, select, textarea, [role=button], [role=menuitem], [data-row-click-ignore]",
+    ) !== null
+  );
 }
 
 export function DataTable<TData extends object>({
@@ -354,12 +455,15 @@ export function DataTable<TData extends object>({
     renderCell,
     renderHeader,
     renderFooterCell,
+  renderExpandedRow,
+  getRowProps,
     rowClassName,
     groupClassName,
     options: optionsOverride,
 }: DataTableProps<TData>) {
     const filterParam = filterParamProp ?? tableData.meta.filterParam ?? "filter";
-    const resolvedOptions = useMemo<DataTableOptions>(() => ({
+  const resolvedOptions = useMemo<DataTableOptions>(
+    () => ({
         quickViews: true,
         customQuickViews: true,
         exports: true,
@@ -367,9 +471,22 @@ export function DataTable<TData extends object>({
         columnVisibility: true,
         columnOrdering: true,
         ...optionsOverride,
-    }), [optionsOverride]);
+    }),
+    [optionsOverride],
+  );
 
     const hasBulkActions = bulkActions && bulkActions.length > 0;
+  const expansion = tableData.expansion;
+  const expansionEnabled = !!expansion && !!renderExpandedRow;
+  const [expandedPayloads, setExpandedPayloads] = useState<
+    Record<string, unknown>
+  >(() => expansion?.data ?? {});
+  const [expandedLoading, setExpandedLoading] = useState<
+    Record<string, boolean>
+  >({});
+  const [expandedErrors, setExpandedErrors] = useState<Record<string, string>>(
+    {},
+  );
 
     const columnDefs = useMemo<ColumnDef<TData>[]>(() => {
         function makeLeafCol(col: DataTableColumnDef): ColumnDef<TData> {
@@ -413,12 +530,51 @@ export function DataTable<TData extends object>({
 
         const result: ColumnDef<TData>[] = [];
 
+    if (expansionEnabled) {
+      result.push({
+        id: "_expand",
+        header: "",
+        enableHiding: false,
+        cell: ({ row }) => {
+          const isLoading = expandedLoading[row.id] === true;
+
+          return (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label={
+                row.getIsExpanded() ? "Réduire la ligne" : "Développer la ligne"
+              }
+              aria-expanded={row.getIsExpanded()}
+              onClick={(event) => {
+                event.stopPropagation();
+                row.toggleExpanded();
+              }}
+            >
+              {isLoading ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : row.getIsExpanded() ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+          );
+        },
+      });
+    }
+
         if (hasBulkActions) {
             result.push({
                 id: "_select",
                 header: ({ table: t }) => (
                     <Checkbox
-                        checked={t.getIsAllPageRowsSelected() || (t.getIsSomePageRowsSelected() && "indeterminate")}
+            checked={
+              t.getIsAllPageRowsSelected() ||
+              (t.getIsSomePageRowsSelected() && "indeterminate")
+            }
                         onCheckedChange={(value) => t.toggleAllPageRowsSelected(!!value)}
                         aria-label="Tout sélectionner"
                     />
@@ -441,7 +597,9 @@ export function DataTable<TData extends object>({
                 result.push(makeLeafCol(col));
             } else if (!processedGroups.has(col.group)) {
                 processedGroups.add(col.group);
-                const groupCols = tableData.columns.filter((c) => c.group === col.group);
+        const groupCols = tableData.columns.filter(
+          (c) => c.group === col.group,
+        );
                 result.push({
                     id: `_group_${col.group}`,
                     header: col.group,
@@ -462,7 +620,14 @@ export function DataTable<TData extends object>({
         }
 
         return result;
-    }, [tableData.columns, actions, hasBulkActions, renderCell]);
+  }, [
+    tableData.columns,
+    actions,
+    hasBulkActions,
+    renderCell,
+    expansionEnabled,
+    expandedLoading,
+  ]);
 
     const {
         table,
@@ -471,6 +636,7 @@ export function DataTable<TData extends object>({
         columnOrder,
         setColumnOrder,
         rowSelection,
+    expanded,
         setRowSelection,
         applyColumns,
         handleSort,
@@ -482,7 +648,125 @@ export function DataTable<TData extends object>({
         tableData,
         tableName,
         columnDefs,
+    expansionKey: expansion?.key,
+    expansionEnabled,
     });
+
+  const requestGeneration = useRef(0);
+  const previouslyExpanded = useRef<Set<string>>(new Set());
+  const previousTableData = useRef(tableData.data);
+
+  useEffect(() => {
+    requestGeneration.current += 1;
+    if (expansion?.mode === "eager") {
+      setExpandedPayloads(expansion.data ?? {});
+    }
+    setExpandedErrors({});
+  }, [tableData.data, expansion?.data]);
+
+  const loadExpandedData = useCallback(
+    async (rowKey: string, force = false) => {
+      if (!expansion || expansion.mode !== "lazy" || !expansion.url) return;
+      if (
+        !force &&
+        Object.prototype.hasOwnProperty.call(expandedPayloads, rowKey)
+      )
+        return;
+
+      const generation = requestGeneration.current;
+      setExpandedLoading((current) => ({ ...current, [rowKey]: true }));
+      setExpandedErrors((current) => {
+        const next = { ...current };
+        delete next[rowKey];
+        return next;
+      });
+
+      try {
+        const response = await fetch(
+          expansion.url.replace("{row}", encodeURIComponent(rowKey)),
+          {
+            headers: { Accept: "application/json" },
+            credentials: "same-origin",
+          },
+        );
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const body = (await response.json()) as { data: unknown };
+        if (generation === requestGeneration.current) {
+          setExpandedPayloads((current) => ({
+            ...current,
+            [rowKey]: body.data,
+          }));
+        }
+      } catch (error) {
+        if (generation === requestGeneration.current) {
+          setExpandedErrors((current) => ({
+            ...current,
+            [rowKey]:
+              error instanceof Error
+                ? error.message
+                : "Impossible de charger les détails.",
+          }));
+        }
+      } finally {
+        if (generation === requestGeneration.current) {
+          setExpandedLoading((current) => ({ ...current, [rowKey]: false }));
+        }
+      }
+    },
+    [expansion, expandedPayloads],
+  );
+
+  useEffect(() => {
+    if (
+      !expansionEnabled ||
+      !expansion ||
+      expansion.mode !== "lazy" ||
+      expanded === true
+    )
+      return;
+    const expandedNow = new Set(
+      Object.entries(expanded)
+        .filter(([, value]) => value)
+        .map(([rowKey]) => rowKey),
+    );
+    for (const rowKey of expandedNow) void loadExpandedData(rowKey);
+    if (!expansion.cache) {
+      for (const rowKey of previouslyExpanded.current) {
+        if (expandedNow.has(rowKey)) continue;
+        setExpandedPayloads((current) => {
+          const next = { ...current };
+          delete next[rowKey];
+          return next;
+        });
+      }
+    }
+    previouslyExpanded.current = expandedNow;
+  }, [expanded, expansion, expansionEnabled, loadExpandedData]);
+
+  useEffect(() => {
+    if (previousTableData.current === tableData.data) return;
+
+    previousTableData.current = tableData.data;
+    if (!expansionEnabled || !expansion || expansion.mode !== "lazy") return;
+
+    const expandedRows =
+      expanded === true
+        ? table.getRowModel().rows.map((row) => row.id)
+        : Object.entries(expanded)
+            .filter(([, value]) => value)
+            .map(([rowKey]) => rowKey);
+
+    for (const rowKey of expandedRows) {
+      void loadExpandedData(rowKey, true);
+    }
+  }, [
+    expanded,
+    expansion,
+    expansionEnabled,
+    loadExpandedData,
+    table,
+    tableData.data,
+  ]);
 
     const filterColumns = useMemo(
         () => buildFilterColumns(tableData.columns),
@@ -509,11 +793,18 @@ export function DataTable<TData extends object>({
                 </div>
                 <Popover>
                     <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 md:hidden"
+            >
                             <EllipsisVertical className="h-4 w-4" />
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="flex w-auto flex-col gap-2 p-2">
+          <PopoverContent
+            align="end"
+            className="flex w-auto flex-col gap-2 p-2"
+          >
                         <DataTableToolbar
                             tableData={tableData}
                             table={table}
@@ -548,7 +839,8 @@ export function DataTable<TData extends object>({
             {hasBulkActions && selectedRows.length > 0 && (
                 <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2">
                     <span className="text-sm font-medium tabular-nums">
-                        {selectedRows.length} sélectionné{selectedRows.length > 1 ? "s" : ""}
+            {selectedRows.length} sélectionné
+            {selectedRows.length > 1 ? "s" : ""}
                     </span>
                     <div className="flex items-center gap-1">
                         {bulkActions.map((action) => {
@@ -557,7 +849,9 @@ export function DataTable<TData extends object>({
                             return (
                                 <Button
                                     key={action.id}
-                                    variant={action.variant === "destructive" ? "destructive" : "outline"}
+                  variant={
+                    action.variant === "destructive" ? "destructive" : "outline"
+                  }
                                     size="sm"
                                     className="h-7 text-xs"
                                     disabled={isDisabled}
@@ -579,7 +873,12 @@ export function DataTable<TData extends object>({
                     </Button>
                 </div>
             )}
-            <div className={cn("rounded-md border border-x-0 overflow-x-auto", className)}>
+      <div
+        className={cn(
+          "rounded-md border border-x-0 overflow-x-auto",
+          className,
+        )}
+      >
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup, groupIdx) => {
@@ -596,10 +895,14 @@ export function DataTable<TData extends object>({
                                                     style={pin.style}
                                                     className={cn(
                                                         "h-8",
-                                                        !header.isPlaceholder && header.colSpan > 1 &&
+                            !header.isPlaceholder &&
+                              header.colSpan > 1 &&
                                                             "text-center text-xs font-semibold text-muted-foreground border-b",
-                                                        !header.isPlaceholder && header.colSpan > 1 &&
-                                                            groupClassName?.[header.column.columnDef.header as string],
+                            !header.isPlaceholder &&
+                              header.colSpan > 1 &&
+                              groupClassName?.[
+                                header.column.columnDef.header as string
+                              ],
                                                         pin.className,
                                                     )}
                                                 >
@@ -642,11 +945,11 @@ export function DataTable<TData extends object>({
                                                         {renderHeader?.[colDef.id]}
                                                     </DataTableColumnHeader>
                                                 ) : (
-                                                    renderHeader?.[header.column.id] ??
+                          (renderHeader?.[header.column.id] ??
                                                     flexRender(
                                                         header.column.columnDef.header,
                                                         header.getContext(),
-                                                    )
+                          ))
                                                 )}
                                             </TableHead>
                                         );
@@ -657,19 +960,50 @@ export function DataTable<TData extends object>({
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows.length > 0 ? (
-                            table.getRowModel().rows.map((row, index) => (
+              table.getRowModel().rows.map((row, index) => {
+                const rowKey = row.id;
+                const payloadLoaded = Object.prototype.hasOwnProperty.call(
+                  expandedPayloads,
+                  rowKey,
+                );
+                const customRowProps = getRowProps?.(row.original) ?? {};
+                const {
+                  className: customRowClassName,
+                  onClick: customRowOnClick,
+                  ...remainingRowProps
+                } = customRowProps;
+                return (
+                  <Fragment key={row.id}>
                                 <TableRow
-                                    key={row.id}
+                      {...remainingRowProps}
                                     data-state={row.getIsSelected() ? "selected" : undefined}
                                     className={cn(
                                         index % 2 === 1 && "bg-muted/40",
                                         row.getIsSelected() && "bg-primary/5",
+                        expansionEnabled && "cursor-pointer",
                                         rowClassName?.(row.original),
+                        customRowClassName,
                                     )}
+                      onClick={(event) => {
+                        customRowOnClick?.(event);
+                        if (
+                          event.defaultPrevented ||
+                          !expansionEnabled ||
+                          isInteractiveTarget(event.target)
+                        ) {
+                          return;
+                        }
+
+                        row.toggleExpanded();
+                      }}
                                 >
                                     {row.getVisibleCells().map((cell) => {
                                         const pin = getColumnPinningProps(cell.column);
-                                        const pinnedBg = getPinnedCellBg(cell.column.getIsPinned(), index % 2 === 1, row.getIsSelected());
+                        const pinnedBg = getPinnedCellBg(
+                          cell.column.getIsPinned(),
+                          index % 2 === 1,
+                          row.getIsSelected(),
+                        );
                                         return (
                                             <TableCell
                                                 key={cell.id}
@@ -677,9 +1011,20 @@ export function DataTable<TData extends object>({
                                                 className={cn(
                                                     index % 2 === 1 && "bg-muted/40",
                                                     "whitespace-nowrap py-2",
-                                                    (cell.column.columnDef.meta as { type?: string })?.type === "number" && "text-right",
-                                                    (cell.column.columnDef.meta as { group?: string | null })?.group &&
-                                                        groupClassName?.[(cell.column.columnDef.meta as { group: string }).group],
+                              (cell.column.columnDef.meta as { type?: string })
+                                ?.type === "number" && "text-right",
+                              (
+                                cell.column.columnDef.meta as {
+                                  group?: string | null;
+                                }
+                              )?.group &&
+                                groupClassName?.[
+                                  (
+                                    cell.column.columnDef.meta as {
+                                      group: string;
+                                    }
+                                  ).group
+                                ],
                                                     pin.className,
                                                 )}
                                             >
@@ -691,7 +1036,41 @@ export function DataTable<TData extends object>({
                                         );
                                     })}
                                 </TableRow>
-                            ))
+                    {expansionEnabled && row.getIsExpanded() && (
+                      <TableRow className="bg-muted/20">
+                        <TableCell
+                          colSpan={row.getVisibleCells().length}
+                          className="p-4"
+                        >
+                          {payloadLoaded ? (
+                            renderExpandedRow?.({
+                              row: row.original,
+                              data: expandedPayloads[rowKey],
+                            })
+                          ) : expandedLoading[rowKey] ? null : expandedErrors[
+                              rowKey
+                            ] ? (
+                            <div className="flex items-center gap-2 text-sm text-destructive">
+                              <span>Impossible de charger les détails.</span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  void loadExpandedData(rowKey, true)
+                                }
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                Réessayer
+                              </Button>
+                            </div>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })
                         ) : (
                             <TableRow>
                                 <TableCell
@@ -706,9 +1085,15 @@ export function DataTable<TData extends object>({
                     {tableData.footer && (
                         <TableFooter>
                             <TableRow>
-                                {[...table.getLeftVisibleLeafColumns(), ...table.getCenterVisibleLeafColumns(), ...table.getRightVisibleLeafColumns()].map((col) => {
+                {[
+                  ...table.getLeftVisibleLeafColumns(),
+                  ...table.getCenterVisibleLeafColumns(),
+                  ...table.getRightVisibleLeafColumns(),
+                ].map((col) => {
                                     const footerValue = tableData.footer?.[col.id];
-                                    const colMeta = col.columnDef.meta as { type?: string; group?: string | null } | undefined;
+                  const colMeta = col.columnDef.meta as
+                    | { type?: string; group?: string | null }
+                    | undefined;
                                     const isNumber = colMeta?.type === "number";
                                     const group = colMeta?.group;
                                     const pin = getColumnPinningProps(col);
@@ -719,17 +1104,21 @@ export function DataTable<TData extends object>({
                                             if (custom !== undefined) {
                                                 content = custom;
                                             } else {
-                                                content = isNumber && typeof footerValue === "number"
+                        content =
+                          isNumber && typeof footerValue === "number"
                                                     ? footerValue.toLocaleString("fr-TN")
                                                     : String(footerValue);
                                             }
                                         } else {
-                                            content = isNumber && typeof footerValue === "number"
+                      content =
+                        isNumber && typeof footerValue === "number"
                                                 ? footerValue.toLocaleString("fr-TN")
                                                 : String(footerValue);
                                         }
                                     }
-                                    const footerPinnedBg = col.getIsPinned() ? { backgroundColor: "var(--color-background)" } : {};
+                  const footerPinnedBg = col.getIsPinned()
+                    ? { backgroundColor: "var(--color-background)" }
+                    : {};
                                     return (
                                         <TableCell
                                             key={col.id}

@@ -57,6 +57,7 @@ php artisan make:data-table Product --route --route-file=routes/admin.php --page
 ```
 
 **Generated files:**
+
 - `app/DataTables/ProductDataTable.php` — DataTable class with DTO, columns, quick views
 - `resources/js/pages/product-table.tsx` — React page stub (path customizable via `--page-path`)
 
@@ -118,6 +119,7 @@ class ProductDataTable extends AbstractDataTable
 ```
 
 After creating or modifying a DataTable class, run:
+
 ```bash
 php artisan typescript:transform
 ```
@@ -164,7 +166,7 @@ public static function tableAllowedFilters(): array
 **Operator table:**
 
 | Type | Default | Available |
-|------|---------|-----------|
+| ------- | -------- | ---------------------------------- |
 | text | contains | contains, eq |
 | number | eq | eq, neq, gt, gte, lt, lte, between |
 | date | eq | eq, before, after, between |
@@ -237,6 +239,60 @@ public static function tableFooter(\Illuminate\Support\Collection $items): array
 
 Footer receives only the **current page** items, not grand totals. Custom rendering via `renderFooterCell` prop on the frontend.
 
+## Expandable Detail Panels
+
+Use `HasExpansion` for opt-in server-driven row details. Payloads must be JSON-serializable and are rendered by the consuming React page.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use Machour\DataTable\Concerns\HasExpansion;
+
+class ProductDataTable extends AbstractDataTable
+{
+    use HasExpansion;
+
+    public static function tableExpansionName(): string { return 'products'; }
+    public static function tableExpansionMode(): string { return 'lazy'; } // or eager
+    public static function tableExpansionKey(): string { return 'id'; }
+    public static function tableExpansionCache(): bool { return true; }
+
+    public static function tableExpandedData(Model $model): mixed
+    {
+        return ['description' => $model->description];
+    }
+}
+```
+
+For lazy mode, register the table and an application-owned authenticated route:
+
+```php
+use Machour\DataTable\Http\Controllers\DataTableExpansionController;
+
+DataTableExpansionController::register('products', ProductDataTable::class);
+Route::get('/data-table/{table}/expansion/{row}', DataTableExpansionController::class)
+    ->middleware('auth')
+    ->name('data-table.expansion');
+```
+
+The endpoint resolves the row through `tableBaseQuery()`, so include required tenant/access scopes in that query. Render with:
+
+```tsx
+<DataTable
+  tableData={tableData}
+  tableName="products"
+  renderExpandedRow={({ row, data }) => (
+    <ProductDetails row={row} details={data} />
+  )}
+/>
+```
+
+- `eager`: computes payloads for current-page rows in `makeTable()`.
+- `lazy`: fetches on expansion through the named route.
+- Cache defaults to enabled; override `tableExpansionCache()` to refetch after collapse.
+- Open rows persist across Inertia refreshes in the current browser tab; open lazy rows refresh their payload when table data changes.
+- Clicking a non-interactive part of a row toggles it. Use `getRowProps` for native row handlers such as drag-and-drop.
+- Multiple rows can remain expanded. Omitting the trait or renderer preserves legacy behavior.
+
 ## Export (HasExport trait)
 
 Requires `maatwebsite/excel` as a peer dependency.
@@ -255,6 +311,7 @@ class ProductDataTable extends AbstractDataTable
 ```
 
 Route registration:
+
 ```php
 use Machour\DataTable\Http\Controllers\DataTableExportController;
 
@@ -275,12 +332,7 @@ interface Props {
 }
 
 export default function ProductTablePage({ tableData }: Props) {
-    return (
-        <DataTable<Row>
-            tableData={tableData}
-            tableName="products"
-        />
-    );
+  return <DataTable<Row> tableData={tableData} tableName="products" />;
 }
 ```
 
@@ -306,7 +358,8 @@ All default to `true`. Override via `options` prop:
 ```tsx
 <DataTable<Row>
     renderCell={(columnId, value, row) => {
-        if (columnId === "price") return <span className="font-bold">{value} DT</span>;
+    if (columnId === "price")
+      return <span className="font-bold">{value} DT</span>;
         return undefined; // fall back to default
     }}
 />
