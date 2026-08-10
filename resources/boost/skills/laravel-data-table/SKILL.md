@@ -295,7 +295,7 @@ The endpoint resolves the row through `tableBaseQuery()`, so include required te
 
 ## Export (HasExport trait)
 
-Requires `maatwebsite/excel` as a peer dependency.
+Export support is included through the package's direct PhpSpreadsheet dependency.
 
 ```php
 use Machour\DataTable\Concerns\HasExport;
