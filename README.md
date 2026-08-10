@@ -13,7 +13,7 @@ A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (T
 - **Column groups** — Group columns under shared headers with custom background colors
 - **Column visibility** — Toggle columns on/off, persisted to localStorage
 - **Footer aggregations** — Per-page computed values (sum, avg, etc.) with custom rendering
-- **XLSX/CSV export** — Powered directly by PhpSpreadsheet
+- **XLSX/CSV export** — Powered directly by PhpSpreadsheet (optional peer dependency)
 - **Bulk actions** — Checkbox selection with configurable action buttons
 - **Expandable detail panels** — Eager or lazy server payloads rendered beneath each row
 - **Row actions** — Per-row dropdown menu with visibility and variant support
@@ -28,12 +28,12 @@ A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (T
 | ---------------------------- | -------------- |
 | PHP | ^8.2 |
 | Laravel | ^11.0 \| ^12.0 |
-| PhpSpreadsheet | ^5.9 |
 | spatie/laravel-data | ^4.0 |
 | spatie/laravel-query-builder | ^6.0 |
 
 **Optional:**
 
+- `phpoffice/phpspreadsheet ^5.9` — for XLSX/CSV export
 - `spatie/laravel-typescript-transformer ^2.5` — for TypeScript type generation from DTOs
 
 ### JavaScript
@@ -58,16 +58,22 @@ npx shadcn@latest add ./vendor/machour/laravel-data-table/react/public/r/data-ta
 
 This copies all DataTable components into your project (you own the code!) and installs the required shadcn UI dependencies automatically.
 
+### 3. (Optional) Install PhpSpreadsheet for export support
+
+```bash
+composer require phpoffice/phpspreadsheet:^5.9
+```
+
 ### Upgrading from 1.x
 
 Version 2.x writes XLSX and CSV exports directly with PhpSpreadsheet 5.x. If Maatwebsite Excel was installed only for this package's exports, remove it while updating:
 
 ```bash
 composer remove maatwebsite/excel --no-update
-composer require machour/laravel-data-table:^2.0 --with-all-dependencies
+composer require machour/laravel-data-table:^2.0 phpoffice/phpspreadsheet:^5.9 --with-all-dependencies
 ```
 
-Maatwebsite Excel 3.x requires PhpSpreadsheet 1.x and cannot be installed alongside this package's PhpSpreadsheet 5.x dependency. Applications that use Maatwebsite Excel elsewhere must migrate those usages before upgrading.
+Maatwebsite Excel 3.x requires PhpSpreadsheet 1.x, while DataTable 2.x exports support PhpSpreadsheet 5.x. Applications that use Maatwebsite Excel elsewhere must migrate those usages before enabling DataTable exports with the supported PhpSpreadsheet version.
 
 ## Quick Start
 
@@ -378,7 +384,7 @@ DataTableExportController::register('products', ProductDataTable::class);
 Route::get('/data-table/export/{table}', DataTableExportController::class)->name('data-table.export');
 ```
 
-Export support is included through the package's direct PhpSpreadsheet dependency.
+Requires `phpoffice/phpspreadsheet ^5.9` as an optional peer dependency.
 
 ## Frontend API
 

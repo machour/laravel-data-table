@@ -9,16 +9,17 @@
         "illuminate/database": "^12.0 || ^13.0",
         "illuminate/http": "^12.0 || ^13.0",
         "illuminate/support": "^12.0 || ^13.0",
-        "phpoffice/phpspreadsheet": "^5.9",
         "spatie/laravel-data": "^4.14",
         "spatie/laravel-query-builder": "^6.0"
     },
     "require-dev": {
         "orchestra/testbench": "^10.0 || ^11.0",
         "pestphp/pest": "^3.0 || ^4.0",
+        "phpoffice/phpspreadsheet": "^5.9",
         "mockery/mockery": "^1.6"
     },
     "suggest": {
+        "phpoffice/phpspreadsheet": "Required for XLSX/CSV export functionality (^5.9)",
         "spatie/laravel-typescript-transformer": "Generate TypeScript types from the PHP DTOs (^2.5)"
     },
     "autoload": {
