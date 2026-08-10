@@ -5,9 +5,10 @@ namespace Machour\DataTable\Concerns;
 use Machour\DataTable\Columns\Column;
 use Machour\DataTable\DataTableExport;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
+use RuntimeException;
 use Spatie\QueryBuilder\QueryBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 trait HasExport
 {
@@ -64,17 +65,29 @@ trait HasExport
         }
 
         $filename = static::resolveExportFilename($request);
-
-        $writerType = match ($format) {
-            'csv' => \Maatwebsite\Excel\Excel::CSV,
-            default => \Maatwebsite\Excel\Excel::XLSX,
+        $format = $format === 'csv' ? 'csv' : 'xlsx';
+        $contentType = match ($format) {
+            'csv' => 'text/csv',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         };
-
-        $extension = $format === 'csv' ? 'csv' : 'xlsx';
-
         $export = new DataTableExport($query->getEloquentBuilder(), $columns);
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'laravel-data-table-');
 
-        return Excel::download($export, "{$filename}.{$extension}", $writerType);
+        if ($temporaryPath === false) {
+            throw new RuntimeException('Unable to create a temporary export file.');
+        }
+
+        try {
+            $export->store($temporaryPath, $format);
+        } catch (Throwable $exception) {
+            @unlink($temporaryPath);
+
+            throw $exception;
+        }
+
+        return response()
+            ->download($temporaryPath, "{$filename}.{$format}", ['Content-Type' => $contentType])
+            ->deleteFileAfterSend(true);
     }
 
     public static function makeExportQuery(?Request $request = null): QueryBuilder

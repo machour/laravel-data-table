@@ -3,11 +3,13 @@
 namespace Machour\DataTable;
 
 use Illuminate\Database\Eloquent\Builder;
-use Maatwebsite\Excel\Concerns\FromQuery;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
+use InvalidArgumentException;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Csv;
+use PhpOffice\PhpSpreadsheet\Writer\IWriter;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-class DataTableExport implements FromQuery, WithHeadings, WithMapping
+class DataTableExport
 {
     /**
      * @param  array<int, array{id: string, label: string}>  $columns
@@ -41,5 +43,35 @@ class DataTableExport implements FromQuery, WithHeadings, WithMapping
 
             return $value;
         }, $this->columns);
+    }
+
+    public function store(string $path, string $format): void
+    {
+        $spreadsheet = new Spreadsheet;
+
+        try {
+            $writer = $this->writer($spreadsheet, $format);
+            $worksheet = $spreadsheet->getActiveSheet();
+            $worksheet->fromArray($this->headings(), null, 'A1', true);
+
+            $rowNumber = 2;
+            foreach ($this->builder->lazy() as $row) {
+                $worksheet->fromArray($this->map($row), null, "A{$rowNumber}", true);
+                $rowNumber++;
+            }
+
+            $writer->save($path);
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+    }
+
+    protected function writer(Spreadsheet $spreadsheet, string $format): IWriter
+    {
+        return match ($format) {
+            'csv' => new Csv($spreadsheet),
+            'xlsx' => new Xlsx($spreadsheet),
+            default => throw new InvalidArgumentException("Unsupported export format: {$format}"),
+        };
     }
 }
