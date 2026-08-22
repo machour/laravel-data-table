@@ -32,7 +32,13 @@ import {
     X,
 } from "lucide-react";
 import type { ColumnOrderState, VisibilityState } from "@tanstack/react-table";
+import { usePage } from "@inertiajs/react";
 import { useCallback, useEffect, useState } from "react";
+import {
+    readBrowserStorage,
+    resolvePageUrl,
+    writeBrowserStorage,
+} from "./runtime";
 import type { DataTableColumnDef, DataTableQuickView } from "./types";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -55,7 +61,10 @@ interface SavedQuickView {
 
 function loadSavedViews(tableName: string): SavedQuickView[] {
     try {
-        const raw = localStorage.getItem(CUSTOM_QV_PREFIX + tableName);
+        const raw = readBrowserStorage(
+            "localStorage",
+            CUSTOM_QV_PREFIX + tableName,
+        );
         return raw ? (JSON.parse(raw) as SavedQuickView[]) : [];
     } catch {
         return [];
@@ -63,7 +72,11 @@ function loadSavedViews(tableName: string): SavedQuickView[] {
 }
 
 function persistSavedViews(tableName: string, views: SavedQuickView[]) {
-    localStorage.setItem(CUSTOM_QV_PREFIX + tableName, JSON.stringify(views));
+    writeBrowserStorage(
+        "localStorage",
+        CUSTOM_QV_PREFIX + tableName,
+        JSON.stringify(views),
+    );
 }
 
 interface DataTableQuickViewsProps {
@@ -93,8 +106,10 @@ export function DataTableQuickViews({
     enableCustom = true,
     filterParam = "filter",
 }: DataTableQuickViewsProps) {
-    const [savedViews, setSavedViews] = useState<SavedQuickView[]>(() =>
-        loadSavedViews(tableName),
+    const pageUrl = usePage().url;
+    const [savedViews, setSavedViews] = useState<SavedQuickView[]>([]);
+    const [hydratedTableName, setHydratedTableName] = useState<string | null>(
+        null,
     );
     const [editing, setEditing] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,14 +117,18 @@ export function DataTableQuickViews({
     const [activeCustomId, setActiveCustomId] = useState<string | null>(null);
 
     useEffect(() => {
+        setSavedViews(loadSavedViews(tableName));
+        setHydratedTableName(tableName);
+    }, [tableName]);
+
+    useEffect(() => {
+        if (hydratedTableName !== tableName) return;
         persistSavedViews(tableName, savedViews);
-    }, [tableName, savedViews]);
+    }, [hydratedTableName, tableName, savedViews]);
 
     const active = quickViews.find((qv) => qv.active);
 
-    const currentSearch = typeof window !== "undefined"
-        ? new URL(window.location.href).search
-        : "";
+    const currentSearch = resolvePageUrl(pageUrl).search;
 
     const hasFilters = decodeURIComponent(currentSearch).includes(`${filterParam}[`);
 

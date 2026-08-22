@@ -1,5 +1,6 @@
-import { router } from "@inertiajs/react";
+import { router, usePage } from "@inertiajs/react";
 import { useCallback, useMemo } from "react";
+import { resolvePageUrl } from "../data-table/runtime";
 import type { ActiveFilters, FilterValue } from "./types";
 
 function parseFilterParam(raw: string): FilterValue {
@@ -10,8 +11,8 @@ function parseFilterParam(raw: string): FilterValue {
     return { operator: "", values: raw.split(",") };
 }
 
-function navigate(params: Record<string, unknown>) {
-    const url = new URL(window.location.href);
+function navigate(pageUrl: string, params: Record<string, unknown>) {
+    const url = resolvePageUrl(pageUrl);
     const sp = new URLSearchParams(url.search);
 
     for (const [k, v] of Object.entries(params)) {
@@ -25,6 +26,7 @@ function navigate(params: Record<string, unknown>) {
 }
 
 export function useFilters(serverFilters: Record<string, unknown>, filterParam = "filter") {
+    const pageUrl = usePage().url;
     const activeFilters = useMemo<ActiveFilters>(() => {
         const result: ActiveFilters = {};
         for (const [key, raw] of Object.entries(serverFilters)) {
@@ -38,30 +40,36 @@ export function useFilters(serverFilters: Record<string, unknown>, filterParam =
     const setFilter = useCallback(
         (columnId: string, operator: string, values: string[]) => {
             if (values.length === 0) {
-                navigate({ [`${filterParam}[${columnId}]`]: null, page: null });
+                navigate(pageUrl, {
+                    [`${filterParam}[${columnId}]`]: null,
+                    page: null,
+                });
                 return;
             }
-            navigate({
+            navigate(pageUrl, {
                 [`${filterParam}[${columnId}]`]: `${operator}:${values.join(",")}`,
                 page: null,
             });
         },
-        [filterParam],
+        [filterParam, pageUrl],
     );
 
     const clearFilter = useCallback((columnId: string) => {
-        navigate({ [`${filterParam}[${columnId}]`]: null, page: null });
-    }, [filterParam]);
+        navigate(pageUrl, {
+            [`${filterParam}[${columnId}]`]: null,
+            page: null,
+        });
+    }, [filterParam, pageUrl]);
 
     const clearAllFilters = useCallback(() => {
         const params: Record<string, unknown> = { page: null };
         const prefix = `${filterParam}[`;
-        const url = new URL(window.location.href);
+        const url = resolvePageUrl(pageUrl);
         for (const k of url.searchParams.keys()) {
             if (k.startsWith(prefix)) params[k] = null;
         }
-        navigate(params);
-    }, [filterParam]);
+        navigate(pageUrl, params);
+    }, [filterParam, pageUrl]);
 
     return { activeFilters, setFilter, clearFilter, clearAllFilters };
 }

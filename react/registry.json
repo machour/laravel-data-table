@@ -60,6 +60,11 @@
                     "target": "resources/js/components/data-table/types.ts"
                 },
                 {
+                    "path": "src/data-table/runtime.ts",
+                    "type": "registry:lib",
+                    "target": "resources/js/components/data-table/runtime.ts"
+                },
+                {
                     "path": "src/data-table/use-data-table.ts",
                     "type": "registry:hook",
                     "target": "resources/js/components/data-table/use-data-table.ts"

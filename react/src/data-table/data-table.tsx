@@ -1,5 +1,6 @@
 "use no memo";
 
+import { usePage } from "@inertiajs/react";
 import {
     Table,
     TableBody,
@@ -70,6 +71,7 @@ import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { DataTableQuickViews } from "./data-table-quick-views";
+import { resolvePageUrl, serializeResolvedUrl } from "./runtime";
 import type {
   DataTableColumnDef,
   DataTableOptions,
@@ -79,11 +81,12 @@ import { useDataTable } from "./use-data-table";
 
 function buildExportUrl(
   baseUrl: string,
+  pageUrl: string,
   format: string,
   visibleColumns?: string[],
 ): string {
-    const currentParams = new URL(window.location.href).searchParams;
-    const exportUrl = new URL(baseUrl, window.location.origin);
+    const currentParams = resolvePageUrl(pageUrl).searchParams;
+    const exportUrl = resolvePageUrl(baseUrl);
     for (const [key, value] of currentParams.entries()) {
         exportUrl.searchParams.set(key, value);
     }
@@ -91,7 +94,7 @@ function buildExportUrl(
     if (visibleColumns?.length) {
         exportUrl.searchParams.set("columns", visibleColumns.join(","));
     }
-    return exportUrl.toString();
+    return serializeResolvedUrl(exportUrl, baseUrl);
 }
 
 function getColumnPinningProps<T>(column: Column<T, unknown>) {
@@ -161,6 +164,8 @@ function DataTableToolbar<TData>({
     resolvedOptions: DataTableOptions;
     filterParam: string;
 }) {
+    const pageUrl = usePage().url;
+
     return (
         <div className="flex gap-3 px-4">
             {(resolvedOptions.quickViews || resolvedOptions.customQuickViews) && (
@@ -193,6 +198,7 @@ function DataTableToolbar<TData>({
               <a
                 href={buildExportUrl(
                                 tableData.exportUrl,
+                                pageUrl,
                                 "xlsx",
                   table
                     .getVisibleLeafColumns()
@@ -208,6 +214,7 @@ function DataTableToolbar<TData>({
               <a
                 href={buildExportUrl(
                                 tableData.exportUrl,
+                                pageUrl,
                                 "csv",
                   table
                     .getVisibleLeafColumns()
@@ -437,9 +444,11 @@ function buildFilterColumns(columns: DataTableColumnDef[]): FilterColumn[] {
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
+  const element = target as Element | null;
+
   return (
-    target instanceof Element &&
-    target.closest(
+    typeof element?.closest === "function" &&
+    element.closest(
       "a, button, input, select, textarea, [role=button], [role=menuitem], [data-row-click-ignore]",
     ) !== null
   );
