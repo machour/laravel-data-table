@@ -2,8 +2,10 @@
     "name": "laravel-data-table",
     "version": "0.1.0",
     "description": "A shadcn registry block providing a full-featured server-side DataTable for Laravel + Inertia.js + React.",
+    "type": "module",
     "license": "MIT",
     "scripts": {
+        "test:ssr": "node --experimental-strip-types --test tests/*.test.mts",
         "registry:build": "shadcn build"
     },
     "devDependencies": {
