@@ -1,5 +1,3 @@
-"use no memo";
-
 import { usePage } from "@inertiajs/react";
 import {
     Table,
@@ -25,13 +23,16 @@ import {
 import { Filters } from "../filters/filters";
 import type { FilterColumn } from "../filters/types";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   type Column,
   type ColumnDef,
   type ColumnOrderState,
+  type ColumnPinningPosition,
+  type ColumnVisibilityState,
+  type RowData,
   type Table as TanStackTable,
-  type VisibilityState,
   flexRender,
 } from "@tanstack/react-table";
 import {
@@ -49,6 +50,7 @@ import {
     List,
   LoaderCircle,
   RefreshCw,
+  Search,
     SlidersHorizontal,
     ToggleLeft,
     Type,
@@ -77,7 +79,52 @@ import type {
   DataTableOptions,
   DataTableProps,
 } from "./types";
-import { useDataTable } from "./use-data-table";
+import {
+  type DataTableFeatures,
+  useDataTable,
+} from "./use-data-table";
+
+function DataTableGlobalSearch({
+  value,
+  onSearch,
+}: {
+  value: string;
+  onSearch: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const lastSubmitted = useRef(value);
+
+  useEffect(() => {
+    setDraft(value);
+    lastSubmitted.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    const normalized = draft.trim();
+    if (normalized === value || normalized === lastSubmitted.current) return;
+
+    const timeout = setTimeout(() => {
+      lastSubmitted.current = normalized;
+      onSearch(normalized);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [draft, onSearch, value]);
+
+  return (
+    <div className="relative w-full sm:w-64">
+      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        type="search"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Rechercher..."
+        aria-label="Recherche globale"
+        className="h-7 pl-8"
+      />
+    </div>
+  );
+}
 
 function buildExportUrl(
   baseUrl: string,
@@ -97,22 +144,26 @@ function buildExportUrl(
     return serializeResolvedUrl(exportUrl, baseUrl);
 }
 
-function getColumnPinningProps<T>(column: Column<T, unknown>) {
+function getColumnPinningProps<T extends RowData>(
+  column: Column<DataTableFeatures, T, unknown>,
+) {
     const isPinned = column.getIsPinned();
     if (!isPinned) return { style: {} as React.CSSProperties, className: "" };
     return {
         style: {
             position: "sticky" as const,
-            left: isPinned === "left" ? `${column.getStart("left")}px` : undefined,
-            right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
+      insetInlineStart:
+        isPinned === "start" ? `${column.getStart("start")}px` : undefined,
+      insetInlineEnd:
+        isPinned === "end" ? `${column.getAfter("end")}px` : undefined,
             zIndex: 1,
         } as React.CSSProperties,
         className: cn(
-      isPinned === "left" &&
-        column.getIsLastColumn("left") &&
+      isPinned === "start" &&
+        column.getIsLastColumn("start") &&
         "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
-      isPinned === "right" &&
-        column.getIsFirstColumn("right") &&
+      isPinned === "end" &&
+        column.getIsFirstColumn("end") &&
         "shadow-[-2px_0_4px_-2px_rgba(0,0,0,0.08)]",
         ),
     };
@@ -120,7 +171,7 @@ function getColumnPinningProps<T>(column: Column<T, unknown>) {
 
 /** Opaque background for pinned cells in data rows — matches zebra stripe visually */
 function getPinnedCellBg(
-  isPinned: string | false,
+  isPinned: ColumnPinningPosition,
   _isEvenRow: boolean,
   isSelected: boolean,
 ): React.CSSProperties {
@@ -135,7 +186,7 @@ function getPinnedCellBg(
     return base;
 }
 
-function DataTableToolbar<TData>({
+function DataTableToolbar<TData extends RowData>({
   tableData,
   table,
   tableName,
@@ -153,9 +204,9 @@ function DataTableToolbar<TData>({
     exportUrl?: string | null;
     columns: DataTableColumnDef[];
   };
-    table: TanStackTable<TData>;
+    table: TanStackTable<DataTableFeatures, TData>;
     tableName: string;
-    columnVisibility: VisibilityState;
+    columnVisibility: ColumnVisibilityState;
     columnOrder: ColumnOrderState;
     applyColumns: (columnIds: string[]) => void;
     onReorderColumns: (order: ColumnOrderState) => void;
@@ -243,7 +294,7 @@ function DataTableToolbar<TData>({
     );
 }
 
-function ColumnsDropdown<TData>({
+function ColumnsDropdown<TData extends RowData>({
   table,
   tableColumns,
   columnOrder,
@@ -251,7 +302,7 @@ function ColumnsDropdown<TData>({
   showVisibility,
   showOrdering,
 }: {
-    table: TanStackTable<TData>;
+    table: TanStackTable<DataTableFeatures, TData>;
     tableColumns: DataTableColumnDef[];
     columnOrder: ColumnOrderState;
     onReorder: (order: ColumnOrderState) => void;
@@ -313,7 +364,9 @@ function ColumnsDropdown<TData>({
     }
 
   function renderItem(
-    column: ReturnType<TanStackTable<TData>["getAllLeafColumns"]>[number],
+    column: ReturnType<
+      TanStackTable<DataTableFeatures, TData>["getAllLeafColumns"]
+    >[number],
   ) {
         const isOver = dragOverId === column.id && dragging !== column.id;
         return (
@@ -454,11 +507,12 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
   );
 }
 
-export function DataTable<TData extends object>({
+export function DataTable<TData extends RowData>({
     className,
     tableData,
     tableName,
     filterParam: filterParamProp,
+    globalSearch = false,
     actions,
     bulkActions,
     renderCell,
@@ -497,8 +551,10 @@ export function DataTable<TData extends object>({
     {},
   );
 
-    const columnDefs = useMemo<ColumnDef<TData>[]>(() => {
-        function makeLeafCol(col: DataTableColumnDef): ColumnDef<TData> {
+    const columnDefs = useMemo<ColumnDef<DataTableFeatures, TData>[]>(() => {
+        function makeLeafCol(
+          col: DataTableColumnDef,
+        ): ColumnDef<DataTableFeatures, TData> {
             return {
                 id: col.id,
                 accessorKey: col.id,
@@ -537,7 +593,7 @@ export function DataTable<TData extends object>({
             };
         }
 
-        const result: ColumnDef<TData>[] = [];
+        const result: ColumnDef<DataTableFeatures, TData>[] = [];
 
     if (expansionEnabled) {
       result.push({
@@ -653,6 +709,7 @@ export function DataTable<TData extends object>({
         handlePerPageChange,
         handleApplyQuickView,
         handleApplyCustomSearch,
+        handleGlobalSearch,
     } = useDataTable<TData>({
         tableData,
         tableName,
@@ -791,13 +848,19 @@ export function DataTable<TData extends object>({
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 py-1">
-                <div className="flex-1 pl-6">
+                <div className="flex flex-1 flex-wrap items-center gap-2 pl-6">
                     {resolvedOptions.filters && (
                         <Filters
                             columns={filterColumns}
                             serverFilters={meta.filters as Record<string, unknown>}
                             filterParam={filterParam}
                         />
+                    )}
+                    {globalSearch && (
+                      <DataTableGlobalSearch
+                        value={meta.globalSearch ?? ""}
+                        onSearch={handleGlobalSearch}
+                      />
                     )}
                 </div>
                 <Popover>
@@ -1095,9 +1158,9 @@ export function DataTable<TData extends object>({
                         <TableFooter>
                             <TableRow>
                 {[
-                  ...table.getLeftVisibleLeafColumns(),
+                  ...table.getStartVisibleLeafColumns(),
                   ...table.getCenterVisibleLeafColumns(),
-                  ...table.getRightVisibleLeafColumns(),
+                  ...table.getEndVisibleLeafColumns(),
                 ].map((col) => {
                                     const footerValue = tableData.footer?.[col.id];
                   const colMeta = col.columnDef.meta as

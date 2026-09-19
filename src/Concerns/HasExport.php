@@ -101,7 +101,19 @@ trait HasExport
             $queryRequest->query->set('filter', $request->get($filterParam, []));
         }
 
-        return QueryBuilder::for(static::tableBaseQuery(), $queryRequest)
+        $baseQuery = static::tableBaseQuery();
+        if (method_exists(static::class, 'applyGlobalSearch')) {
+            $globalSearchParam = method_exists(static::class, 'globalSearchParamName')
+                ? static::globalSearchParamName()
+                : 'search';
+            $globalSearchValue = $request->get($globalSearchParam, '');
+            $baseQuery = static::applyGlobalSearch(
+                $baseQuery,
+                is_scalar($globalSearchValue) ? (string) $globalSearchValue : '',
+            );
+        }
+
+        return QueryBuilder::for($baseQuery, $queryRequest)
             ->allowedFilters(static::tableAllowedFilters())
             ->allowedSorts(static::tableAllowedSorts())
             ->defaultSort(static::tableDefaultSort());

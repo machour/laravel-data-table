@@ -3,7 +3,9 @@
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Machour\DataTable\AbstractDataTable;
 use Machour\DataTable\Columns\Column;
 use Machour\DataTable\Concerns\HasExport;
 use Machour\DataTable\DataTableExport;
@@ -22,9 +24,15 @@ class DataTableExportRow extends Model
     ];
 }
 
-class DataTableExportTable
+class DataTableExportTable extends AbstractDataTable
 {
     use HasExport;
+
+    public function __construct(
+        public int $id = 0,
+        public string $name = '',
+        public bool $active = false,
+    ) {}
 
     public static function tableExportEnabled(): bool
     {
@@ -52,6 +60,11 @@ class DataTableExportTable
     public static function tableBaseQuery(): Builder
     {
         return DataTableExportRow::query();
+    }
+
+    public static function tableGlobalSearchFields(): array
+    {
+        return ['name'];
     }
 
     public static function tableAllowedFilters(): array
@@ -167,4 +180,12 @@ test('it downloads an export with the expected filename and content type', funct
     } finally {
         @unlink($path);
     }
+});
+
+test('export query applies the current global search', function () {
+    $query = DataTableExportTable::makeExportQuery(
+        Request::create('/test', 'GET', ['search' => 'alpha']),
+    );
+
+    expect($query->pluck('name')->all())->toBe(['Alpha']);
 });

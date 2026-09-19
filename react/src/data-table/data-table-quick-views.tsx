@@ -31,7 +31,10 @@ import {
     Trash2,
     X,
 } from "lucide-react";
-import type { ColumnOrderState, VisibilityState } from "@tanstack/react-table";
+import type {
+  ColumnOrderState,
+  ColumnVisibilityState,
+} from "@tanstack/react-table";
 import { usePage } from "@inertiajs/react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -82,7 +85,7 @@ function persistSavedViews(tableName: string, views: SavedQuickView[]) {
 interface DataTableQuickViewsProps {
     quickViews: DataTableQuickView[];
     tableName: string;
-    columnVisibility: VisibilityState;
+    columnVisibility: ColumnVisibilityState;
     columnOrder: ColumnOrderState;
     allColumns: DataTableColumnDef[];
     onSelect: (params: Record<string, unknown>) => void;
@@ -173,7 +176,9 @@ export function DataTableQuickViews({
 
     const activeLabel = activeCustomId
         ? savedViews.find((v) => v.id === activeCustomId)?.label
-        : active?.label;
+        : active && Object.keys(active.params).length > 0
+          ? active.label
+          : undefined;
 
     if (quickViews.length === 0 && savedViews.length === 0 && !enableCustom) return null;
 

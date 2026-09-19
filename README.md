@@ -1,12 +1,13 @@
 # Laravel DataTable
 
-A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (TanStack Table v8). Define your table in a single PHP class — get sorting, filtering, pagination, exports, quick views, and a full-featured React UI out of the box.
+A reusable, server-side DataTable system for **Laravel + Inertia.js + React** (TanStack Table v9). Define your table in a single PHP class — get sorting, filtering, pagination, exports, quick views, and a full-featured React UI out of the box.
 
 ## Features
 
 - **Single-file backend** — One PHP class per model acts as both DTO and table configuration
 - **Server-side everything** — Sorting, filtering, pagination handled by Spatie QueryBuilder
 - **Operator-based filters** — URL format `filter[price]=gte:1000` with 14 operators (eq, neq, gt, gte, lt, lte, between, in, not_in, contains, before, after, null, not_null)
+- **Optional global search** — Search across an explicit allow-list of database fields
 - **Quick Views** — Server-defined filter presets + user-saved custom views (localStorage)
 - **Column ordering** — Drag-to-reorder via GripVertical handles, persisted to localStorage
 - **Column pinning** — Automatic sticky columns for checkbox (`_select`) and actions (`_actions`)
@@ -149,6 +150,11 @@ class ProductDataTable extends AbstractDataTable
         ];
     }
 
+    public static function tableGlobalSearchFields(): array
+    {
+        return ['name'];
+    }
+
     public static function tableBaseQuery(): Builder
     {
         return Product::query();
@@ -213,6 +219,8 @@ Extend this class for each model. It extends `Spatie\LaravelData\Data`, so it's 
 | `tableQuickViews()` | No | Returns `QuickView[]` for filter presets |
 | `tableAllowedFilters()` | No | Auto-derived from `filterable: true` columns. Override for `OperatorFilter` or custom filters |
 | `tableAllowedSorts()` | No | Auto-derived from `sortable: true` columns. Override for relation sorts |
+| `tableGlobalSearchFields()` | No | Database fields included in global search. Default: `[]` |
+| `globalSearchParamName()` | No | URL query parameter for global search. Default: `'search'` |
 | `tableFooter(Collection)` | No | Compute per-page footer aggregations |
 | `filterParamName()` | No | URL query parameter name for filters. Default: `'filter'`. Override to avoid collisions with multiple tables on one page |
 | `makeTable(?Request)` | Inherited | Builds the `DataTableResponse` — call this in your route |
@@ -236,6 +244,8 @@ new Column(
 );
 ```
 
+Set `filterable: false` (the default) to keep a table column out of the filter selector. For a server-side filter that should not appear in the selector, add it directly to `tableAllowedFilters()` without marking a column as filterable.
+
 ### `QuickView`
 
 ```php
@@ -251,7 +261,7 @@ new QuickView(
 );
 ```
 
-- **Empty `params: []`** matches when no filter and no sort in the URL
+- **Empty `params: []`** matches when no filter, sort, or global search is present in the URL
 - **`columns`** defines both visibility AND display order when the view is active
 
 ### `OperatorFilter`
@@ -395,6 +405,7 @@ interface DataTableProps<TData extends object> {
     tableData: DataTableResponse<TData>;  // Server response from makeTable()
     tableName: string;                     // Unique name for localStorage keys
     filterParam?: string;                  // URL param name for filters (default: from server or 'filter')
+    globalSearch?: boolean;                 // Show global search input (default: false)
     actions?: DataTableAction<TData>[];    // Row actions dropdown
     bulkActions?: DataTableBulkAction<TData>[]; // Bulk actions with checkbox selection
   renderCell?: (
@@ -411,6 +422,16 @@ interface DataTableProps<TData extends object> {
     groupClassName?: Record<string, string>;
     options?: Partial<DataTableOptions>;   // Feature flags (all default to true)
 }
+```
+
+Enable global search after declaring its backend fields:
+
+```tsx
+<DataTable
+    tableData={tableData}
+    tableName="products"
+    globalSearch
+/>
 ```
 
 ### Options (Feature Flags)
@@ -533,6 +554,11 @@ class InvoiceDataTable extends AbstractDataTable
     {
         return 'invoice_filter';
     }
+
+    public static function globalSearchParamName(): string
+    {
+        return 'invoice_search';
+    }
 }
 ```
 
@@ -548,9 +574,10 @@ The frontend picks up the param name automatically from the server response. You
 All state is URL-driven and bookmarkable:
 
 ```
-/products?filter[price]=gte:1000&filter[name]=contains:widget&sort=-price,name&page=2&per_page=50
+/products?search=widget&filter[price]=gte:1000&sort=-price,name&page=2&per_page=50
 ```
 
+- **Global search**: `search=term` (or the name returned by `globalSearchParamName()`)
 - **Filters**: `filter[column]=operator:value1,value2`
 - **Sort**: `sort=column` (asc) or `sort=-column` (desc), comma-separated for multi-sort
 - **Pagination**: `page=N&per_page=N`

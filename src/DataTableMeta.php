@@ -16,5 +16,7 @@ class DataTableMeta extends Data
         public array $sorts = [],
         public array $filters = [],
         public string $filterParam = 'filter',
+        public string $globalSearch = '',
+        public string $globalSearchParam = 'search',
     ) {}
 }

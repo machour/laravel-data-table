@@ -3,12 +3,22 @@ import {
     type ColumnDef,
     type ColumnFiltersState,
     type ColumnOrderState,
+    type ColumnVisibilityState,
   type ExpandedState,
     type RowSelectionState,
+    type RowData,
     type SortingState,
-    type VisibilityState,
-    getCoreRowModel,
-    useReactTable,
+  columnFilteringFeature,
+  columnOrderingFeature,
+  columnPinningFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
+  rowExpandingFeature,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -21,6 +31,20 @@ import type { DataTableColumnDef, DataTableResponse } from "./types";
 const STORAGE_PREFIX = "dt-columns-";
 const ORDER_STORAGE_PREFIX = "dt-column-order-";
 const EXPANDED_STORAGE_PREFIX = "dt-expanded-";
+
+export const dataTableFeatures = tableFeatures({
+  columnFilteringFeature,
+  columnOrderingFeature,
+  columnPinningFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
+  rowExpandingFeature,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+});
+
+export type DataTableFeatures = typeof dataTableFeatures;
 
 function loadExpanded(tableName: string): ExpandedState {
   const stored = readBrowserStorage(
@@ -46,8 +70,8 @@ function saveExpanded(tableName: string, expanded: ExpandedState) {
   );
 }
 
-function defaultVisibility(columns: DataTableColumnDef[]): VisibilityState {
-    const visibility: VisibilityState = {};
+function defaultVisibility(columns: DataTableColumnDef[]): ColumnVisibilityState {
+    const visibility: ColumnVisibilityState = {};
     for (const col of columns) {
         visibility[col.id] = col.visible;
     }
@@ -57,14 +81,14 @@ function defaultVisibility(columns: DataTableColumnDef[]): VisibilityState {
 function loadVisibility(
   tableName: string,
   columns: DataTableColumnDef[],
-): VisibilityState {
+): ColumnVisibilityState {
     const stored = readBrowserStorage(
       "localStorage",
       STORAGE_PREFIX + tableName,
     );
     if (stored) {
         try {
-            return JSON.parse(stored) as VisibilityState;
+            return JSON.parse(stored) as ColumnVisibilityState;
         } catch {
             // fall through
         }
@@ -72,7 +96,7 @@ function loadVisibility(
     return defaultVisibility(columns);
 }
 
-function saveVisibility(tableName: string, visibility: VisibilityState) {
+function saveVisibility(tableName: string, visibility: ColumnVisibilityState) {
     writeBrowserStorage(
       "localStorage",
       STORAGE_PREFIX + tableName,
@@ -106,15 +130,15 @@ function saveColumnOrder(tableName: string, order: ColumnOrderState) {
     );
 }
 
-interface UseDataTableOptions<TData> {
+interface UseDataTableOptions<TData extends RowData> {
     tableData: DataTableResponse<TData>;
     tableName: string;
-    columnDefs: ColumnDef<TData>[];
+    columnDefs: ColumnDef<DataTableFeatures, TData>[];
   expansionKey?: string;
   expansionEnabled?: boolean;
 }
 
-export function useDataTable<TData>({
+export function useDataTable<TData extends RowData>({
   tableData,
   tableName,
   columnDefs,
@@ -128,7 +152,7 @@ export function useDataTable<TData>({
   columnsRef.current = tableData.columns;
   columnDefsRef.current = columnDefs;
 
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(
     () => defaultVisibility(tableData.columns),
     );
 
@@ -174,24 +198,27 @@ export function useDataTable<TData>({
     [tableName],
   );
 
-  const navigate = useCallback((params: Record<string, unknown>) => {
-            const currentUrl = resolvePageUrl(pageUrl);
-            const searchParams = new URLSearchParams(currentUrl.search);
+  const navigate = useCallback(
+    (params: Record<string, unknown>, replace = false) => {
+      const currentUrl = resolvePageUrl(pageUrl);
+      const searchParams = new URLSearchParams(currentUrl.search);
 
-            for (const [key, value] of Object.entries(params)) {
-                if (value === null || value === undefined || value === "") {
-                    searchParams.delete(key);
-                } else {
-                    searchParams.set(key, String(value));
-                }
-            }
+      for (const [key, value] of Object.entries(params)) {
+        if (value === null || value === undefined || value === "") {
+          searchParams.delete(key);
+        } else {
+          searchParams.set(key, String(value));
+        }
+      }
 
-            router.get(
-                currentUrl.pathname + "?" + searchParams.toString(),
-                {},
-                { preserveScroll: true },
-            );
-  }, [pageUrl]);
+      router.get(
+        currentUrl.pathname + "?" + searchParams.toString(),
+        {},
+        { preserveScroll: true, replace },
+      );
+    },
+    [pageUrl],
+  );
 
     const handleSort = useCallback(
         (columnId: string, multi: boolean) => {
@@ -268,7 +295,7 @@ export function useDataTable<TData>({
 
     const applyColumns = useCallback(
         (columnIds: string[]) => {
-            const newVisibility: VisibilityState = {};
+            const newVisibility: ColumnVisibilityState = {};
             for (const col of tableData.columns) {
                 newVisibility[col.id] = columnIds.includes(col.id);
             }
@@ -278,8 +305,8 @@ export function useDataTable<TData>({
     [columnDefs, tableData.columns],
     );
 
-    // eslint-disable-next-line react-hooks/incompatible-library
-    const table = useReactTable<TData>({
+    const table = useTable({
+        features: dataTableFeatures,
         data: tableData.data,
         columns: columnDefs,
         manualPagination: true,
@@ -299,13 +326,12 @@ export function useDataTable<TData>({
           String((row as unknown as Record<string, unknown>)[expansionKey])
       : undefined,
     manualExpanding: true,
-        getCoreRowModel: getCoreRowModel(),
         initialState: {
             columnPinning: {
-        left: ["_expand", "_select"].filter((id) =>
+        start: ["_expand", "_select"].filter((id) =>
           columnDefs.some((column) => column.id === id),
         ),
-                right: columnDefs.some((c) => c.id === "_actions") ? ["_actions"] : [],
+                end: columnDefs.some((c) => c.id === "_actions") ? ["_actions"] : [],
             },
         },
         state: {
@@ -337,6 +363,19 @@ export function useDataTable<TData>({
     router.get(currentUrl.pathname + search, {}, { preserveScroll: true });
   }, [pageUrl]);
 
+  const handleGlobalSearch = useCallback(
+    (search: string) => {
+      navigate(
+        {
+          [meta.globalSearchParam ?? "search"]: search.trim() || null,
+          page: null,
+        },
+        true,
+      );
+    },
+    [meta.globalSearchParam, navigate],
+  );
+
     return {
         table,
         meta,
@@ -352,12 +391,13 @@ export function useDataTable<TData>({
         handlePerPageChange,
         handleApplyQuickView,
         handleApplyCustomSearch,
+        handleGlobalSearch,
     };
 }
 
-function withSystemColumns<TData>(
+function withSystemColumns<TData extends RowData>(
   order: ColumnOrderState,
-  columnDefs: ColumnDef<TData>[],
+  columnDefs: ColumnDef<DataTableFeatures, TData>[],
 ): ColumnOrderState {
   const available = new Set(
     columnDefs

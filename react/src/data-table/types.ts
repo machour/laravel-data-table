@@ -35,6 +35,8 @@ export interface DataTableMeta {
     sorts: DataTableSort[];
     filters: Record<string, unknown>;
     filterParam?: string;
+    globalSearch?: string;
+    globalSearchParam?: string;
 }
 
 export interface DataTableOptions {
@@ -91,6 +93,7 @@ export interface DataTableProps<TData extends object> {
     tableData: DataTableResponse<TData>;
     tableName: string;
     filterParam?: string;
+    globalSearch?: boolean;
     actions?: DataTableAction<TData>[];
     bulkActions?: DataTableBulkAction<TData>[];
   renderCell?: (
