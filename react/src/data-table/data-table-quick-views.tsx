@@ -176,7 +176,9 @@ export function DataTableQuickViews({
 
     const activeLabel = activeCustomId
         ? savedViews.find((v) => v.id === activeCustomId)?.label
-        : active?.label;
+        : active && Object.keys(active.params).length > 0
+          ? active.label
+          : undefined;
 
     if (quickViews.length === 0 && savedViews.length === 0 && !enableCustom) return null;
 

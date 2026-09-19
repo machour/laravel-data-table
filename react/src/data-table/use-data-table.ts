@@ -198,24 +198,27 @@ export function useDataTable<TData extends RowData>({
     [tableName],
   );
 
-  const navigate = useCallback((params: Record<string, unknown>) => {
-            const currentUrl = resolvePageUrl(pageUrl);
-            const searchParams = new URLSearchParams(currentUrl.search);
+  const navigate = useCallback(
+    (params: Record<string, unknown>, replace = false) => {
+      const currentUrl = resolvePageUrl(pageUrl);
+      const searchParams = new URLSearchParams(currentUrl.search);
 
-            for (const [key, value] of Object.entries(params)) {
-                if (value === null || value === undefined || value === "") {
-                    searchParams.delete(key);
-                } else {
-                    searchParams.set(key, String(value));
-                }
-            }
+      for (const [key, value] of Object.entries(params)) {
+        if (value === null || value === undefined || value === "") {
+          searchParams.delete(key);
+        } else {
+          searchParams.set(key, String(value));
+        }
+      }
 
-            router.get(
-                currentUrl.pathname + "?" + searchParams.toString(),
-                {},
-                { preserveScroll: true },
-            );
-  }, [pageUrl]);
+      router.get(
+        currentUrl.pathname + "?" + searchParams.toString(),
+        {},
+        { preserveScroll: true, replace },
+      );
+    },
+    [pageUrl],
+  );
 
     const handleSort = useCallback(
         (columnId: string, multi: boolean) => {
@@ -360,6 +363,19 @@ export function useDataTable<TData extends RowData>({
     router.get(currentUrl.pathname + search, {}, { preserveScroll: true });
   }, [pageUrl]);
 
+  const handleGlobalSearch = useCallback(
+    (search: string) => {
+      navigate(
+        {
+          [meta.globalSearchParam ?? "search"]: search.trim() || null,
+          page: null,
+        },
+        true,
+      );
+    },
+    [meta.globalSearchParam, navigate],
+  );
+
     return {
         table,
         meta,
@@ -375,6 +391,7 @@ export function useDataTable<TData extends RowData>({
         handlePerPageChange,
         handleApplyQuickView,
         handleApplyCustomSearch,
+        handleGlobalSearch,
     };
 }
 

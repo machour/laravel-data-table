@@ -53,6 +53,13 @@ test('quickView with empty params does NOT match when filter present', function 
     expect(StubDataTable::testQuickViewMatchesRequest($qv, $request))->toBeFalse();
 });
 
+test('quickView with empty params does NOT match when global search is present', function () {
+    $qv = new QuickView(id: 'all', label: 'All', params: []);
+    $request = Request::create('/test', 'GET', ['search' => 'Ada']);
+
+    expect(StubDataTable::testQuickViewMatchesRequest($qv, $request))->toBeFalse();
+});
+
 test('quickView with filter params matches when request has same filters', function () {
     $qv = new QuickView(id: 'enabled', label: 'Enabled', params: ['filter[enabled]' => 'eq:1']);
     $request = Request::create('/test', 'GET', ['filter' => ['enabled' => 'eq:1']]);

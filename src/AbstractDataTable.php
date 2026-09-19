@@ -42,6 +42,38 @@ abstract class AbstractDataTable extends Data
     }
 
     /**
+     * @return array<int, string>
+     */
+    public static function tableGlobalSearchFields(): array
+    {
+        return [];
+    }
+
+    public static function globalSearchParamName(): string
+    {
+        return 'search';
+    }
+
+    public static function applyGlobalSearch(Builder $query, string $search): Builder
+    {
+        $search = trim($search);
+        $fields = array_values(array_filter(
+            static::tableGlobalSearchFields(),
+            fn ($field) => is_string($field) && $field !== '',
+        ));
+
+        if ($search === '' || $fields === []) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $query) use ($fields, $search) {
+            foreach ($fields as $field) {
+                $query->orWhereLike($field, "%{$search}%");
+            }
+        });
+    }
+
+    /**
      * Compute footer aggregations for the current page of data.
      *
      * @param  \Illuminate\Support\Collection  $items  Collection of DTO instances for current page
@@ -80,6 +112,11 @@ abstract class AbstractDataTable extends Data
     {
         $request = $request ?? request();
         $filterParam = static::filterParamName();
+        $globalSearchParam = static::globalSearchParamName();
+        $globalSearchValue = $request->get($globalSearchParam, '');
+        $globalSearch = is_scalar($globalSearchValue)
+            ? trim((string) $globalSearchValue)
+            : '';
 
         $queryRequest = $request;
         if ($filterParam !== 'filter') {
@@ -87,7 +124,10 @@ abstract class AbstractDataTable extends Data
             $queryRequest->query->set('filter', $request->get($filterParam, []));
         }
 
-        $query = QueryBuilder::for(static::tableBaseQuery(), $queryRequest)
+        $query = QueryBuilder::for(
+            static::applyGlobalSearch(static::tableBaseQuery(), $globalSearch),
+            $queryRequest,
+        )
             ->allowedFilters(static::tableAllowedFilters())
             ->allowedSorts(static::tableAllowedSorts())
             ->defaultSort(static::tableDefaultSort());
@@ -183,6 +223,8 @@ abstract class AbstractDataTable extends Data
                 sorts: $sorts,
                 filters: $request->get($filterParam, []),
                 filterParam: $filterParam,
+                globalSearch: $globalSearch,
+                globalSearchParam: $globalSearchParam,
             ),
             exportUrl: $exportUrl,
             footer: ! empty($footer) ? $footer : null,
@@ -193,7 +235,9 @@ abstract class AbstractDataTable extends Data
     protected static function quickViewMatchesRequest(QuickView $qv, Request $request, string $filterParam = 'filter'): bool
     {
         if (empty($qv->params)) {
-            return ! $request->has($filterParam) && ! $request->has('sort');
+            return ! $request->has($filterParam)
+                && ! $request->has('sort')
+                && ! $request->filled(static::globalSearchParamName());
         }
 
         $qvFilterKeys = [];

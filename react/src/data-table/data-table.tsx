@@ -23,6 +23,7 @@ import {
 import { Filters } from "../filters/filters";
 import type { FilterColumn } from "../filters/types";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   type Column,
@@ -49,6 +50,7 @@ import {
     List,
   LoaderCircle,
   RefreshCw,
+  Search,
     SlidersHorizontal,
     ToggleLeft,
     Type,
@@ -81,6 +83,48 @@ import {
   type DataTableFeatures,
   useDataTable,
 } from "./use-data-table";
+
+function DataTableGlobalSearch({
+  value,
+  onSearch,
+}: {
+  value: string;
+  onSearch: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const lastSubmitted = useRef(value);
+
+  useEffect(() => {
+    setDraft(value);
+    lastSubmitted.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    const normalized = draft.trim();
+    if (normalized === value || normalized === lastSubmitted.current) return;
+
+    const timeout = setTimeout(() => {
+      lastSubmitted.current = normalized;
+      onSearch(normalized);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [draft, onSearch, value]);
+
+  return (
+    <div className="relative w-full sm:w-64">
+      <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        type="search"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Rechercher..."
+        aria-label="Recherche globale"
+        className="h-7 pl-8"
+      />
+    </div>
+  );
+}
 
 function buildExportUrl(
   baseUrl: string,
@@ -468,6 +512,7 @@ export function DataTable<TData extends RowData>({
     tableData,
     tableName,
     filterParam: filterParamProp,
+    globalSearch = false,
     actions,
     bulkActions,
     renderCell,
@@ -664,6 +709,7 @@ export function DataTable<TData extends RowData>({
         handlePerPageChange,
         handleApplyQuickView,
         handleApplyCustomSearch,
+        handleGlobalSearch,
     } = useDataTable<TData>({
         tableData,
         tableName,
@@ -802,13 +848,19 @@ export function DataTable<TData extends RowData>({
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 py-1">
-                <div className="flex-1 pl-6">
+                <div className="flex flex-1 flex-wrap items-center gap-2 pl-6">
                     {resolvedOptions.filters && (
                         <Filters
                             columns={filterColumns}
                             serverFilters={meta.filters as Record<string, unknown>}
                             filterParam={filterParam}
                         />
+                    )}
+                    {globalSearch && (
+                      <DataTableGlobalSearch
+                        value={meta.globalSearch ?? ""}
+                        onSearch={handleGlobalSearch}
+                      />
                     )}
                 </div>
                 <Popover>
