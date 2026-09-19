@@ -405,7 +405,7 @@ interface DataTableProps<TData extends object> {
     tableData: DataTableResponse<TData>;  // Server response from makeTable()
     tableName: string;                     // Unique name for localStorage keys
     filterParam?: string;                  // URL param name for filters (default: from server or 'filter')
-    globalSearch?: boolean;                 // Show global search input (default: false)
+    globalSearch?: boolean;                 // Set false to hide backend-enabled global search
     actions?: DataTableAction<TData>[];    // Row actions dropdown
     bulkActions?: DataTableBulkAction<TData>[]; // Bulk actions with checkbox selection
   renderCell?: (
@@ -424,14 +424,19 @@ interface DataTableProps<TData extends object> {
 }
 ```
 
-Enable global search after declaring its backend fields:
+Global search is enabled automatically when the backend declares searchable fields:
+
+```php
+public static function tableGlobalSearchFields(): array
+{
+    return ['name', 'description'];
+}
+```
+
+Disable it for a specific React table when needed:
 
 ```tsx
-<DataTable
-    tableData={tableData}
-    tableName="products"
-    globalSearch
-/>
+<DataTable tableData={tableData} tableName="products" globalSearch={false} />
 ```
 
 ### Options (Feature Flags)

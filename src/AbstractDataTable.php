@@ -225,6 +225,7 @@ abstract class AbstractDataTable extends Data
                 filterParam: $filterParam,
                 globalSearch: $globalSearch,
                 globalSearchParam: $globalSearchParam,
+                globalSearchEnabled: static::tableGlobalSearchFields() !== [],
             ),
             exportUrl: $exportUrl,
             footer: ! empty($footer) ? $footer : null,

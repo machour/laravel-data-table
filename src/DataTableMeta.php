@@ -18,5 +18,6 @@ class DataTableMeta extends Data
         public string $filterParam = 'filter',
         public string $globalSearch = '',
         public string $globalSearchParam = 'search',
+        public bool $globalSearchEnabled = false,
     ) {}
 }

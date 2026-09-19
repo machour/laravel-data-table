@@ -60,6 +60,14 @@ class CustomParamGlobalSearchTestTable extends GlobalSearchTestTable
     }
 }
 
+class DisabledGlobalSearchTestTable extends GlobalSearchTestTable
+{
+    public static function tableGlobalSearchFields(): array
+    {
+        return [];
+    }
+}
+
 beforeEach(function () {
     Schema::dropIfExists('global_search_test_models');
     Schema::create('global_search_test_models', function (Blueprint $table) {
@@ -94,6 +102,7 @@ test('global search filters across declared fields only', function () {
     expect($firstNameMatch->data)->toHaveCount(1)
         ->and($firstNameMatch->data[0]->first_name)->toBe('Ada')
         ->and($firstNameMatch->meta->globalSearch)->toBe('ada')
+        ->and($firstNameMatch->meta->globalSearchEnabled)->toBeTrue()
         ->and($lastNameMatch->data)->toHaveCount(1)
         ->and($lastNameMatch->data[0]->last_name)->toBe('Hopper')
         ->and($excludedFieldMatch->data)->toBe([]);
@@ -111,4 +120,13 @@ test('global search supports a custom query parameter', function () {
         ->and($response->data[0]->first_name)->toBe('Ada')
         ->and($response->meta->globalSearch)->toBe('Ada')
         ->and($response->meta->globalSearchParam)->toBe('people_search');
+});
+
+test('backend advertises global search only when searchable fields are declared', function () {
+    $response = DisabledGlobalSearchTestTable::makeTable(
+        Request::create('/test', 'GET', ['search' => 'Ada']),
+    );
+
+    expect($response->meta->globalSearchEnabled)->toBeFalse()
+        ->and($response->data)->toHaveCount(3);
 });

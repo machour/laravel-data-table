@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 import {
+  isGlobalSearchVisible,
   readBrowserStorage,
   resolvePageUrl,
   serializeResolvedUrl,
@@ -91,4 +92,12 @@ test("resolved export URLs retain their original URL shape", () => {
     serializeResolvedUrl(absolute, "https://example.com/exports"),
     "https://example.com/exports?format=xlsx",
   );
+});
+
+test("global search visibility follows backend support and frontend opt-out", () => {
+  assert.equal(isGlobalSearchVisible(true, undefined), true);
+  assert.equal(isGlobalSearchVisible(true, true), true);
+  assert.equal(isGlobalSearchVisible(true, false), false);
+  assert.equal(isGlobalSearchVisible(false, undefined), false);
+  assert.equal(isGlobalSearchVisible(undefined, undefined), false);
 });

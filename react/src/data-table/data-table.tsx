@@ -73,7 +73,11 @@ import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { DataTableQuickViews } from "./data-table-quick-views";
-import { resolvePageUrl, serializeResolvedUrl } from "./runtime";
+import {
+  isGlobalSearchVisible,
+  resolvePageUrl,
+  serializeResolvedUrl,
+} from "./runtime";
 import type {
   DataTableColumnDef,
   DataTableOptions,
@@ -512,7 +516,7 @@ export function DataTable<TData extends RowData>({
     tableData,
     tableName,
     filterParam: filterParamProp,
-    globalSearch = false,
+    globalSearch,
     actions,
     bulkActions,
     renderCell,
@@ -856,7 +860,10 @@ export function DataTable<TData extends RowData>({
                             filterParam={filterParam}
                         />
                     )}
-                    {globalSearch && (
+                    {isGlobalSearchVisible(
+                      meta.globalSearchEnabled,
+                      globalSearch,
+                    ) && (
                       <DataTableGlobalSearch
                         value={meta.globalSearch ?? ""}
                         onSearch={handleGlobalSearch}
