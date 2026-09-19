@@ -37,6 +37,7 @@ export interface DataTableMeta {
     filterParam?: string;
     globalSearch?: string;
     globalSearchParam?: string;
+    globalSearchEnabled?: boolean;
 }
 
 export interface DataTableOptions {

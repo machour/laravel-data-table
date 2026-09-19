@@ -47,3 +47,10 @@ export function serializeResolvedUrl(url: URL, source: string): string {
 
   return `${url.pathname}${url.search}${url.hash}`;
 }
+
+export function isGlobalSearchVisible(
+  backendEnabled: boolean | undefined,
+  frontendOverride: boolean | undefined,
+): boolean {
+  return backendEnabled === true && frontendOverride !== false;
+}
