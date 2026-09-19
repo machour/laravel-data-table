@@ -9,7 +9,7 @@
             "title": "Laravel DataTable",
             "description": "A full-featured server-side DataTable for Laravel + Inertia.js + React with sorting, filtering, pagination, quick views, column ordering, exports, and more.",
             "dependencies": [
-                "@tanstack/react-table",
+                "@tanstack/react-table@^9.2.4",
                 "@inertiajs/react",
                 "date-fns",
                 "lucide-react"
