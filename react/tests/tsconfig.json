@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/components/ui/input": ["./fixtures/input.tsx"]
+    }
+  },
+  "include": ["../src/data-table/data-table-global-search.tsx", "fixtures/input.tsx"]
+}

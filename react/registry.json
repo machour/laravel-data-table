@@ -35,6 +35,11 @@
                     "target": "resources/js/components/data-table/data-table.tsx"
                 },
                 {
+                    "path": "src/data-table/data-table-global-search.tsx",
+                    "type": "registry:component",
+                    "target": "resources/js/components/data-table/data-table-global-search.tsx"
+                },
+                {
                     "path": "src/data-table/data-table-column-header.tsx",
                     "type": "registry:component",
                     "target": "resources/js/components/data-table/data-table-column-header.tsx"

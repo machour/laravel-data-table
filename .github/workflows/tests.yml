@@ -54,9 +54,9 @@ jobs:
         working-directory: react
         run: npm install
 
-      - name: Run React SSR tests
+      - name: Run React tests
         working-directory: react
-        run: npm run test:ssr
+        run: npm test
 
       - name: Build registry
         working-directory: react

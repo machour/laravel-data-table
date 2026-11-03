@@ -5,14 +5,22 @@
     "type": "module",
     "license": "MIT",
     "scripts": {
-        "test:ssr": "node --experimental-strip-types --test tests/*.test.mts",
+        "test": "TSX_TSCONFIG_PATH=tests/tsconfig.json node --import tsx --test tests/*.test.mts",
+        "test:ssr": "node --experimental-strip-types --test tests/runtime.test.mts",
         "registry:build": "shadcn build"
     },
     "devDependencies": {
+        "@inertiajs/react": "^2.3.29",
         "@tanstack/react-table": "^9.2.4",
+        "@types/jsdom": "^30.0.0",
         "@types/react": "^18.0",
         "@types/react-dom": "^18.0",
+        "jsdom": "^29.1.1",
+        "lucide-react": "^1.66.0",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
         "shadcn": "latest",
+        "tsx": "^4.23.15",
         "typescript": "^5.9.3"
     }
 }
